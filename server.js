@@ -4,7 +4,7 @@ const cors = require("cors"); //Para permitir solicitudes desde otro dominio
 
 const db = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
-const administrarComiteRoutes = require("./routes/adminstrarComiteRoutes");
+const administrarComiteRoutes = require("./routes/administrarComiteRoutes");
 const { errorHandler } = require("./middleware/errorHandler");
 
 const app = express(); //Instancia del servidor

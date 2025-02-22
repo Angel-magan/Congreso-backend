@@ -2,13 +2,13 @@ const express = require("express");
 
 const {
     getCongresistas,
-    addToComite,
+    actualizarMiembroComite,
 } = require("../controllers/administrarComiteController");
 
 const router = express.Router();
 
 // Rutas
 router.get("/congresistas", getCongresistas);
-router.put("/actualizar-miembro/:id", addToComite);
+router.put("/congresistas/:id/:miembroComite", actualizarMiembroComite);
 
 module.exports = router;
