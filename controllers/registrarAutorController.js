@@ -35,7 +35,7 @@ exports.getUsuarioById = (req, res) => {
 
 // Registrar autor
 exports.registrarAutor = (req, res) => {
-    console.log("Datos recibidos en el backend:", req.body); // <-- Esto mostrará los datos recibidos
+    console.log("Datos recibidos en el backend:", req.body);
 
     const { id_usuario, id_congresista } = req.body;
 
@@ -43,12 +43,25 @@ exports.registrarAutor = (req, res) => {
         return res.status(400).json({ message: "Error: id_usuario es requerido" });
     }
 
-    const sql = "INSERT INTO autor (id_usuario, id_congresista) VALUES (?, ?)";
-    db.query(sql, [id_usuario, id_congresista || null], (err, result) => {
+    // Verificar si ya existe un autor con el mismo id_usuario
+    const checkSql = "SELECT COUNT(*) AS existe FROM autor WHERE id_usuario = ?";
+    db.query(checkSql, [id_usuario], (err, result) => {
         if (err) {
-            return res.status(500).json({ message: "Error al registrar autor", error: err.message });
+            return res.status(500).json({ message: "Error al verificar autor", error: err.message });
         }
-        res.json({ success: true, message: "Autor registrado correctamente" });
+
+        if (result[0].existe > 0) {
+            return res.status(400).json({ message: "Este autor ya está registrado." });
+        }
+
+        // Si no existe, registrar al autor
+        const insertSql = "INSERT INTO autor (id_usuario, id_congresista) VALUES (?, ?)";
+        db.query(insertSql, [id_usuario, id_congresista || null], (err, result) => {
+            if (err) {
+                return res.status(500).json({ message: "Error al registrar autor", error: err.message });
+            }
+            res.json({ success: true, message: "Autor registrado correctamente" });
+        });
     });
 };
 
