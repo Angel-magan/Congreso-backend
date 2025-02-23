@@ -5,6 +5,7 @@ const cors = require("cors"); //Para permitir solicitudes desde otro dominio
 const db = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
 const administrarComiteRoutes = require("./routes/administrarComiteRoutes");
+const registrarAutorRoutes = require("./routes/registrarAutorRoutes");
 const { errorHandler } = require("./middleware/errorHandler");
 
 const app = express(); //Instancia del servidor
@@ -23,7 +24,8 @@ db.connect((err) => {
 app.use("/api/users", userRoutes);
 // Ruta para el administrar comite
 app.use("/api/users", administrarComiteRoutes);
-
+// Ruta para el autor
+app.use("/api/users", registrarAutorRoutes);
 // Middleware para manejo de errores
 app.use(errorHandler);
 
