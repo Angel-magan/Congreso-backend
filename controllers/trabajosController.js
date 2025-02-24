@@ -7,7 +7,8 @@ exports.getAutores = (req, res) => {
             a.id_autor,
             u.nombre,
             u.apellido,
-            u.correo
+            u.correo,
+            a.id_congresista
         FROM 
             autor a
         JOIN 
@@ -23,7 +24,8 @@ exports.getAutores = (req, res) => {
         const autores = result.map(autor => ({
             id: autor.id_autor,
             nombre: `${autor.nombre} ${autor.apellido}`,
-            correo: autor.correo
+            correo: autor.correo,
+            esCongresista: autor.id_congresista !== null //  Si no es null, es congresista
         }));
 
         res.json(autores);
@@ -94,4 +96,27 @@ function insertarAutoresTrabajo(trabajoId, autores) {
             .catch(err => reject(err));
     });
 }
+
+
+
+exports.validarCongresista = (req, res) => {
+    const { idsUsuarios } = req.body;
+
+    if (!idsUsuarios || idsUsuarios.length === 0) {
+        return res.status(400).json({ message: "No se enviaron autores para validar" });
+    }
+
+    const sql = `
+        SELECT COUNT(*) AS cantidad FROM congresista WHERE id_usuario IN (?);
+    `;
+
+    db.query(sql, [idsUsuarios], (err, result) => {
+        if (err) {
+            return res.status(500).json({ message: "Error al validar congresistas", error: err.message });
+        }
+
+        const esValido = result[0].cantidad > 0; // Si hay al menos un congresista, es válido
+        res.json({ esValido });
+    });
+};
 
