@@ -6,7 +6,8 @@ exports.getAutores = (req, res) => {
         SELECT 
             a.id_autor,
             u.nombre,
-            u.apellido
+            u.apellido,
+            u.correo
         FROM 
             autor a
         JOIN 
@@ -21,7 +22,8 @@ exports.getAutores = (req, res) => {
         
         const autores = result.map(autor => ({
             id: autor.id_autor,
-            nombre: `${autor.nombre} ${autor.apellido}`
+            nombre: `${autor.nombre} ${autor.apellido}`,
+            correo: autor.correo
         }));
 
         res.json(autores);
