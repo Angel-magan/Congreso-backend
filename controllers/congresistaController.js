@@ -5,8 +5,8 @@ exports.registrarCongresista = (req, res) => {
     const { nombre, apellido, correo, institucion, telefono, notificacion } = req.body;
 
 
-    if (!nombre || !apellido || !correo || !institucion) {
-        return res.status(400).json({ message: "Nombre, apellido, correo e institución son obligatorios" });
+    if (!institucion) {
+        return res.status(400).json({ message: "La institución es de caracter obligatorio" });
     }
 
 

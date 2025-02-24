@@ -152,6 +152,8 @@ exports.loginUser = (req, res) => {
               return res.status(200).json({
                 id: usuario.id_usuario,
                 nombre: usuario.nombre,
+                apellido: usuario.apellido,
+                correo: usuario.correo,
                 rol: rol,
               });
             });
