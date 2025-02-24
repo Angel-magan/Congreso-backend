@@ -8,6 +8,7 @@ const userRoutes = require("./routes/userRoutes");
 const congresistaRoutes = require("./routes/congresistaRoutes");
 const administrarComiteRoutes = require("./routes/administrarComiteRoutes");
 const registrarAutorRoutes = require("./routes/registrarAutorRoutes");
+const sesionRoutes = require("./routes/sesionRoutes");
 const trabajosRoutes = require("./routes/trabajoRoutes");
 const { errorHandler } = require("./middleware/errorHandler");
 
@@ -33,6 +34,8 @@ app.use("/api/users", userRoutes);
 // Ruta para ver todos los congresistas
 app.use("/api/congresistas", congresistaRoutes);
 
+// Ruta para ver todas las sesiones
+app.use("/api/sesiones", sesionRoutes);
 
 // Ruta para el administrar comite
 app.use("/api/users", administrarComiteRoutes);
