@@ -82,7 +82,7 @@ exports.loginUser = (req, res) => {
   }
 
   const sql =
-    "SELECT id_usuario, nombre, correo, contrasena FROM usuario WHERE correo = ?";
+    "SELECT id_usuario, nombre, apellido, correo, contrasena FROM usuario WHERE correo = ?";
   db.query(sql, [email], (err, results) => {
     if (err) {
       return res
@@ -113,6 +113,7 @@ exports.loginUser = (req, res) => {
       res.status(200).json({
         id: user.id_usuario,
         nombre: user.nombre,
+        apellido: user.apellido,
         correo: user.correo,
       });
     });
