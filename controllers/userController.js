@@ -1,4 +1,5 @@
 const db = require("../config/db");
+const bcrypt = require("bcryptjs");
 
 //Ver usuarios
 exports.infoUser = (req, res) => {
@@ -42,17 +43,32 @@ exports.registerUser = (req, res) => {
       });
     }
 
-    const addUserSql =
-      "INSERT INTO usuario(nombre, apellido, correo, contrasena) VALUES(?, ?, ?, ?)";
-
-    db.query(addUserSql, [name, lastName, email, password], (err, result) => {
+    // Encriptar la contraseña
+    bcrypt.hash(password, 10, (err, hashedPassword) => {
       if (err) {
-        console.error("Error SQL:", err); // Añadir para depurar
-        return res
-          .status(500)
-          .json({ message: "Error al registrar el usuario", error: err });
+        console.error("Error al encriptar la contraseña:", err);
+        return res.status(500).json({
+          message: "Error al registrar el usuario.",
+          error: err,
+        });
       }
-      res.status(201).json({ message: "Usuario registrado correctamente" });
+
+      const addUserSql =
+        "INSERT INTO usuario(nombre, apellido, correo, contrasena) VALUES(?, ?, ?, ?)";
+
+      db.query(
+        addUserSql,
+        [name, lastName, email, hashedPassword],
+        (err, result) => {
+          if (err) {
+            console.error("Error SQL:", err); // Añadir para depurar
+            return res
+              .status(500)
+              .json({ message: "Error al registrar el usuario", error: err });
+          }
+          res.status(201).json({ message: "Usuario registrado correctamente" });
+        }
+      );
     });
   });
 };
@@ -65,24 +81,85 @@ exports.loginUser = (req, res) => {
     return res.status(400).json({ message: "Faltan datos" });
   }
 
-  const sql =
-    "SELECT id_usuario, nombre, correo FROM usuario WHERE correo = ? AND contrasena = ?";
-  db.query(sql, [email, password], (err, results) => {
+  // Buscar al usuario en la tabla "usuario" usando el correo
+  const sqlUsuario = "SELECT * FROM usuario WHERE correo = ?";
+  db.query(sqlUsuario, [email], (err, usuarioResults) => {
     if (err) {
       return res
         .status(500)
         .json({ message: "Error en la consulta", error: err });
     }
-
-    if (results.length > 0) {
-      const user = results[0]; // Devuelve el primer resultado de la consulta
-      res.status(200).json({
-        id: user.id_usuario,
-        nombre: user.nombre,
-        correo: user.correo,
-      });
-    } else {
-      res.status(401).json({ message: "Credenciales inválidas" });
+    if (usuarioResults.length === 0) {
+      return res.status(401).json({ message: "Credenciales inválidas" });
     }
+
+    const usuario = usuarioResults[0];
+
+    // Comparar la contraseña ingresada con la almacenada (cifrada)
+    bcrypt.compare(password, usuario.contrasena, (err, isMatch) => {
+      if (err) {
+        console.error("Error al comparar contraseñas:", err);
+        return res
+          .status(500)
+          .json({ message: "Error al verificar la contraseña" });
+      }
+
+      if (!isMatch) {
+        return res.status(400).json({ message: "Contraseña incorrecta" });
+      }
+
+      // Por defecto, asumimos rol "Usuario"
+      let rol = "Usuario";
+
+      // Primero, verificamos si es congresista
+      const sqlCongresista = "SELECT * FROM congresista WHERE id_usuario = ?";
+      db.query(
+        sqlCongresista,
+        [usuario.id_usuario],
+        (err, congresistaResults) => {
+          if (err) {
+            return res.status(500).json({
+              message: "Error al verificar rol congresista",
+              error: err,
+            });
+          }
+
+          if (congresistaResults.length > 0) {
+            rol = "Congresista";
+            // Enviamos la respuesta directamente
+            return res.status(200).json({
+              id: usuario.id_usuario,
+              nombre: usuario.nombre,
+              rol: rol,
+            });
+          } else {
+            // Si no es congresista, verificamos si es autor
+            const sqlAutor = "SELECT * FROM autor WHERE id_usuario = ?";
+            db.query(sqlAutor, [usuario.id_usuario], (err, autorResults) => {
+              if (err) {
+                return res.status(500).json({
+                  message: "Error al verificar rol autor",
+                  error: err,
+                });
+              }
+
+              if (autorResults.length > 0) {
+                rol = "Autor";
+              }
+              // Si no se encontró en autor, el rol seguirá siendo "Usuario"
+
+              // Enviar la respuesta final
+              return res.status(200).json({
+                id: usuario.id_usuario,
+                nombre: usuario.nombre,
+                apellido: usuario.apellido,
+                correo: usuario.correo,
+                rol: rol,
+              });
+            });
+          }
+        }
+      );
+    });
   });
 };
