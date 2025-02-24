@@ -1,12 +1,16 @@
 const express = require("express");
 
 const {
-    getAutores
+    getAutores,
+    SubirTrabajo,
+    //verificarCoautorEsCongresista
 } = require("../controllers/trabajosController");
 
 const router = express.Router();
 
 // Rutas
-router.get("/trabajos", getAutores);
+router.get("/autores", getAutores);
+router.post("/SubirTrabajos", SubirTrabajo);
+//router.post("/validarCoautor", verificarCoautorEsCongresista);
 
 module.exports = router;
