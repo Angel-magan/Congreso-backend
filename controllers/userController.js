@@ -109,7 +109,7 @@ exports.loginUser = (req, res) => {
       }
 
       // Por defecto, asumimos rol "Usuario"
-      let rol = "Usuario";
+      let roles = [];
 
       // Primero, verificamos si es congresista
       const sqlCongresista = "SELECT * FROM congresista WHERE id_usuario = ?";
@@ -125,41 +125,92 @@ exports.loginUser = (req, res) => {
           }
 
           if (congresistaResults.length > 0) {
-            rol = "Congresista";
-            // Enviamos la respuesta directamente
+            roles.push("Congresista");
+          }
+          // Si no es congresista, verificamos si es autor
+          const sqlAutor = "SELECT * FROM autor WHERE id_usuario = ?";
+          db.query(sqlAutor, [usuario.id_usuario], (err, autorResults) => {
+            if (err) {
+              return res.status(500).json({
+                message: "Error al verificar rol autor",
+                error: err,
+              });
+            }
+
+            if (autorResults.length > 0) {
+              roles.push("Autor");
+            }
+            // Si no se encontró en autor, el rol seguirá siendo "Usuario"
+            if (roles.length === 0) {
+              roles.push("Usuario");
+            }
+
+            // Enviar la respuesta final
             return res.status(200).json({
               id: usuario.id_usuario,
               nombre: usuario.nombre,
-              rol: rol,
+              apellido: usuario.apellido,
+              correo: usuario.correo,
+              roles: roles,
             });
-          } else {
-            // Si no es congresista, verificamos si es autor
-            const sqlAutor = "SELECT * FROM autor WHERE id_usuario = ?";
-            db.query(sqlAutor, [usuario.id_usuario], (err, autorResults) => {
-              if (err) {
-                return res.status(500).json({
-                  message: "Error al verificar rol autor",
-                  error: err,
-                });
-              }
-
-              if (autorResults.length > 0) {
-                rol = "Autor";
-              }
-              // Si no se encontró en autor, el rol seguirá siendo "Usuario"
-
-              // Enviar la respuesta final
-              return res.status(200).json({
-                id: usuario.id_usuario,
-                nombre: usuario.nombre,
-                apellido: usuario.apellido,
-                correo: usuario.correo,
-                rol: rol,
-              });
-            });
-          }
+          });
         }
       );
+    });
+  });
+};
+
+exports.homeUserInfo = (req, res) => {
+  const { id } = req.params;
+  const sql = "SELECT * FROM usuario WHERE id_usuario = ?";
+  db.query(sql, [id], (err, results) => {
+    if (err)
+      return res
+        .status(500)
+        .json({ message: "Error en la consulta", error: err });
+    if (results.length === 0)
+      return res.status(404).json({ message: "Usuario no encontrado" });
+
+    const usuario = results[0];
+    let roles = [];
+
+    // Consulta para ver si el usuario es congresista
+    const sqlCongresista = "SELECT * FROM congresista WHERE id_usuario = ?";
+    db.query(sqlCongresista, [id], (err, congresistaResults) => {
+      if (err)
+        return res
+          .status(500)
+          .json({ message: "Error al consultar rol congresista", error: err });
+
+      if (congresistaResults.length > 0) {
+        roles.push("Congresista");
+      }
+
+      // Consulta para ver si el usuario es autor
+      const sqlAutor = "SELECT * FROM autor WHERE id_usuario = ?";
+      db.query(sqlAutor, [id], (err, autorResults) => {
+        if (err)
+          return res
+            .status(500)
+            .json({ message: "Error al consultar rol autor", error: err });
+
+        if (autorResults.length > 0) {
+          roles.push("Autor");
+        }
+
+        // Si no se encontró ningún rol, asigna "Usuario" (opcional)
+        if (roles.length === 0) {
+          roles.push("Usuario");
+        }
+
+        // Agregar la propiedad roles al objeto usuario
+        const updatedUser = {
+          ...usuario,
+          roles: roles,
+        };
+
+        return res.status(200).json(updatedUser);
+      });
     });
   });
 };
