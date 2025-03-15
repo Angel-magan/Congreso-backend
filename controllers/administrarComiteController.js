@@ -34,3 +34,35 @@ exports.actualizarMiembroComite = (req, res) => {
     res.json({ success: true, message: "Miembro del comité actualizado" });
   });
 };
+
+// Usado para obtener los miembros del comité para crear sesión
+exports.getMiembrosComite = (req, res) => {
+  const { nombre } = req.query;
+
+  let query = `
+    SELECT 
+        u.nombre,
+        u.apellido
+    FROM 
+        congresista c
+    JOIN 
+        usuario u ON c.id_usuario = u.id_usuario
+    WHERE 
+        c.miembro_comite = 1
+  `;
+
+  const queryParams = [];
+
+  if (nombre) {
+      query += ` AND u.nombre LIKE ?`;
+      queryParams.push(`%${nombre}%`);
+  }
+
+  db.query(query, queryParams, (err, results) => {
+      if (err) {
+          console.error("Error al obtener miembros del comité:", err);
+          return res.status(500).json({ error: "Error en el servidor" });
+      }
+      res.json(results);
+  });
+};
