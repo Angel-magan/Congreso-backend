@@ -378,3 +378,45 @@ exports.homeUserInfo = (req, res) => {
   });
 };
 
+
+//Registrar un usuario y su autor
+exports.registerUserAndAuthor = (req, res) => {
+  const { name, lastName, email } = req.body;
+
+  if (!name || !lastName || !email) {
+    return res.status(400).json({ message: "Faltan datos por ingresar" });
+  }
+
+  // Verificar si el correo ya existe
+  const checkEmailSql = "SELECT correo FROM usuario WHERE correo = ?";
+  db.query(checkEmailSql, [email], (err, results) => {
+    if (err) {
+      console.error("Error al verificar email:", err);
+      return res.status(500).json({ message: "Error en el servidor" });
+    }
+
+    if (results.length > 0) {
+      return res.status(400).json({ message: "El correo ya está registrado" });
+    }
+
+    // Procedimiento almacenado para insertar tanto el usuario como el autor (sin contraseña)
+    const sql = "CALL RegistrarUsuarioYAutor(?, ?, ?)";
+    db.query(
+      sql,
+      [name, lastName, email], // Solo pasamos nombre, apellido y correo
+      (err, result) => {
+        if (err) {
+          console.error("Error al ejecutar el procedimiento almacenado:", err);
+          return res.status(500).json({
+            message: "Error al registrar el usuario y autor",
+            error: err,
+          });
+        }
+
+        // Si el procedimiento almacenado tiene éxito
+        res.status(201).json({ message: "Usuario y autor registrados correctamente" });
+      }
+    );
+  });
+};
+
