@@ -3,7 +3,9 @@ const express = require("express");
 const {
     getAutores,
     SubirTrabajo,
-    validarCongresista
+    validarCongresista,
+    buscarTrabajoPorTitulo,
+    getAutoresPorTrabajo
 } = require("../controllers/trabajosController");
 
 const router = express.Router();
@@ -12,5 +14,7 @@ const router = express.Router();
 router.get("/autores", getAutores);
 router.post("/SubirTrabajos", SubirTrabajo);
 router.post("/validarCongresista", validarCongresista);
+router.get("/buscar", buscarTrabajoPorTitulo);
+router.get("/:id_trabajo/autores", getAutoresPorTrabajo);
 
 module.exports = router;
