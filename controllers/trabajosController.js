@@ -1,5 +1,47 @@
 const db = require("../config/db");
 
+//Variabales usadas para subir archivos
+const simpleGit = require('simple-git');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
+
+const upload = multer({ dest: 'uploads/' }); // Carpeta temporal para archivos
+
+const git = simpleGit();
+
+//endpoint para subir archivos
+exports.subirArchivo = async (req, res) => {
+    upload.single('archivo')(req, res, async (err) => {
+        if (err) {
+            return res.status(500).json({ error: "Error al subir el archivo" });
+        }
+
+        const archivo = req.file;
+        const repoPath = path.join(__dirname, '../../RepositorioArchivos/ArchivosCongreso'); // Ruta local del repo
+        const repoURL = 'https://github.com/maicol-monge/ArchivosCongreso/blob/main/'; // URL pública del repo
+
+        try {
+            // Mover el archivo al repositorio
+            const destino = path.join(repoPath, archivo.originalname);
+            fs.renameSync(archivo.path, destino);
+
+            // Agregar el archivo a Git y hacer commit
+            await git.cwd(repoPath)
+                .add('.')
+                .commit(`Añadiendo archivo: ${archivo.originalname}`)
+                .push('origin', 'main');
+
+            // Generar la URL del archivo
+            const archivoURL = `${repoURL}${archivo.originalname}`;
+
+            res.json({ mensaje: "Archivo subido exitosamente", url: archivoURL });
+        } catch (error) {
+            console.error('Error al subir archivo:', error);
+            res.status(500).json({ error: "Error al subir el archivo" });
+        }
+    });
+};
 // Obtener todos los autores
 exports.getAutores = (req, res) => {
 	const sql = `
