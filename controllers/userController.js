@@ -14,66 +14,126 @@ exports.infoUser = (req, res) => {
 };
 
 //Registrar un usuario
-exports.registerUser = (req, res) => {
-  const { name, lastName, email, password } = req.body;
+// exports.registerUser = (req, res) => {
+//   const { name, lastName, email, password } = req.body;
 
-  if (!name || !lastName || !email || !password) {
-    return res.status(400).json({ message: "Faltan datos por ingresar" });
-  }
+//   if (!name || !lastName || !email || !password) {
+//     return res.status(400).json({ message: "Faltan datos por ingresar" });
+//   }
 
-  //Verificar si el correo ya existe
-  const checkEmailSql = "SELECT correo FROM usuario WHERE correo = ?";
-  db.query(checkEmailSql, [email], (err, results) => {
-    if (err) {
-      console.error("Error al verificar email:", err);
-      return res.status(500).json({ message: "Error en el servidor" });
-    }
+//   //Verificar si el correo ya existe
+//   const checkEmailSql = "SELECT correo FROM usuario WHERE correo = ?";
+//   db.query(checkEmailSql, [email], (err, results) => {
+//     if (err) {
+//       console.error("Error al verificar email:", err);
+//       return res.status(500).json({ message: "Error en el servidor" });
+//     }
 
-    if (results.length > 0) {
-      return res.status(400).json({ message: "El correo ya está registrado" });
-    }
+//     if (results.length > 0) {
+//       return res.status(400).json({ message: "El correo ya está registrado" });
+//     }
 
-    // Validar que tenga 8 carac, 1 numero y una mayuscula
-    const passwordRegex = /^(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/;
+//     // Validar que tenga 8 carac, 1 numero y una mayuscula
+//     const passwordRegex = /^(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/;
 
-    if (!passwordRegex.test(password)) {
-      return res.status(400).json({
-        message:
-          "La contraseña debe tener al menos 8 caracteres, incluir una letra mayúscula y un número.",
-      });
-    }
+//     if (!passwordRegex.test(password)) {
+//       return res.status(400).json({
+//         message:
+//           "La contraseña debe tener al menos 8 caracteres, incluir una letra mayúscula y un número.",
+//       });
+//     }
 
-    // Encriptar la contraseña
-    bcrypt.hash(password, 10, (err, hashedPassword) => {
-      if (err) {
-        console.error("Error al encriptar la contraseña:", err);
-        return res.status(500).json({
-          message: "Error al registrar el usuario.",
-          error: err,
-        });
-      }
+//     // Encriptar la contraseña
+//     bcrypt.hash(password, 10, (err, hashedPassword) => {
+//       if (err) {
+//         console.error("Error al encriptar la contraseña:", err);
+//         return res.status(500).json({
+//           message: "Error al registrar el usuario.",
+//           error: err,
+//         });
+//       }
 
-      const addUserSql =
-        "INSERT INTO usuario(nombre, apellido, correo, contrasena) VALUES(?, ?, ?, ?)";
+//       const addUserSql =
+//         "INSERT INTO usuario(nombre, apellido, correo, contrasena) VALUES(?, ?, ?, ?)";
 
-      db.query(
-        addUserSql,
-        [name, lastName, email, hashedPassword],
-        (err, result) => {
-          if (err) {
-            console.error("Error SQL:", err); // Añadir para depurar
-            return res
-              .status(500)
-              .json({ message: "Error al registrar el usuario", error: err });
-          }
-          res.status(201).json({ message: "Usuario registrado correctamente" });
-        }
-      );
-    });
-  });
-};
+//       db.query(
+//         addUserSql,
+//         [name, lastName, email, hashedPassword],
+//         (err, result) => {
+//           if (err) {
+//             console.error("Error SQL:", err); // Añadir para depurar
+//             return res
+//               .status(500)
+//               .json({ message: "Error al registrar el usuario", error: err });
+//           }
+//           res.status(201).json({ message: "Usuario registrado correctamente" });
+//         }
+//       );
+//     });
+//   });
+// };
 
 //Registrar un usuario
+// exports.registerUser = (req, res) => {
+//   const { name, lastName, email, password } = req.body;
+
+//   if (!name || !lastName || !email || !password) {
+//     return res.status(400).json({ message: "Faltan datos por ingresar" });
+//   }
+
+//   //Verificar si el correo ya existe
+//   const checkEmailSql = "SELECT correo FROM usuario WHERE correo = ?";
+//   db.query(checkEmailSql, [email], (err, results) => {
+//     if (err) {
+//       console.error("Error al verificar email:", err);
+//       return res.status(500).json({ message: "Error en el servidor" });
+//     }
+
+//     if (results.length > 0) {
+//       return res.status(400).json({ message: "El correo ya está registrado" });
+//     }
+
+//     // Validar que tenga 8 carac, 1 numero y una mayuscula
+//     const passwordRegex = /^(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/;
+
+//     if (!passwordRegex.test(password)) {
+//       return res.status(400).json({
+//         message:
+//           "La contraseña debe tener al menos 8 caracteres, incluir una letra mayúscula y un número.",
+//       });
+//     }
+
+//     // Encriptar la contraseña
+//     bcrypt.hash(password, 10, (err, hashedPassword) => {
+//       if (err) {
+//         console.error("Error al encriptar la contraseña:", err);
+//         return res.status(500).json({
+//           message: "Error al registrar el usuario.",
+//           error: err,
+//         });
+//       }
+
+//       const addUserSql =
+//         "INSERT INTO usuario(nombre, apellido, correo, contrasena) VALUES(?, ?, ?, ?)";
+
+//       db.query(
+//         addUserSql,
+//         [name, lastName, email, hashedPassword],
+//         (err, result) => {
+//           if (err) {
+//             console.error("Error SQL:", err); // Añadir para depurar
+//             return res
+//               .status(500)
+//               .json({ message: "Error al registrar el usuario", error: err });
+//           }
+//           res.status(201).json({ message: "Usuario registrado correctamente" });
+//         }
+//       );
+//     });
+//   });
+// };
+
+//PROC INSERTAR USUARIO ******************************
 exports.registerUser = (req, res) => {
   const { name, lastName, email, password } = req.body;
 
@@ -81,57 +141,46 @@ exports.registerUser = (req, res) => {
     return res.status(400).json({ message: "Faltan datos por ingresar" });
   }
 
-  //Verificar si el correo ya existe
-  const checkEmailSql = "SELECT correo FROM usuario WHERE correo = ?";
-  db.query(checkEmailSql, [email], (err, results) => {
+  // Validar que la contraseña cumpla con los requisitos (8 caracteres, al menos una mayúscula, al menos un número)
+  const passwordRegex = /^(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/;
+
+  if (!passwordRegex.test(password)) {
+    return res.status(400).json({
+      message:
+        "La contraseña debe tener al menos 8 caracteres, incluir una letra mayúscula y un número.",
+    });
+  }
+
+  // Encriptar la contraseña
+  bcrypt.hash(password, 10, (err, hashedPassword) => {
     if (err) {
-      console.error("Error al verificar email:", err);
-      return res.status(500).json({ message: "Error en el servidor" });
-    }
-
-    if (results.length > 0) {
-      return res.status(400).json({ message: "El correo ya está registrado" });
-    }
-
-    // Validar que tenga 8 carac, 1 numero y una mayuscula
-    const passwordRegex = /^(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/;
-
-    if (!passwordRegex.test(password)) {
-      return res.status(400).json({
-        message:
-          "La contraseña debe tener al menos 8 caracteres, incluir una letra mayúscula y un número.",
+      console.error("Error al encriptar la contraseña:", err);
+      return res.status(500).json({
+        message: "Error al registrar el usuario.",
+        error: err,
       });
     }
 
-    // Encriptar la contraseña
-    bcrypt.hash(password, 10, (err, hashedPassword) => {
+    // Llamar al procedimiento almacenado
+    const sql = "CALL RegistrarUsuario(?, ?, ?, ?)";
+    db.query(sql, [name, lastName, email, hashedPassword], (err, results) => {
       if (err) {
-        console.error("Error al encriptar la contraseña:", err);
+        console.error("Error al ejecutar el procedimiento:", err);
         return res.status(500).json({
           message: "Error al registrar el usuario.",
           error: err,
         });
       }
 
-      const addUserSql =
-        "INSERT INTO usuario(nombre, apellido, correo, contrasena) VALUES(?, ?, ?, ?)";
+      // Si ya estaba registrado, se devuelve el mensaje de que solo se actualizó la contraseña
+      const mensaje = results[0][0].mensaje;
 
-      db.query(
-        addUserSql,
-        [name, lastName, email, hashedPassword],
-        (err, result) => {
-          if (err) {
-            console.error("Error SQL:", err); // Añadir para depurar
-            return res
-              .status(500)
-              .json({ message: "Error al registrar el usuario", error: err });
-          }
-          res.status(201).json({ message: "Usuario registrado correctamente" });
-        }
-      );
+      return res.status(200).json({ message: mensaje });
     });
   });
 };
+
+// A*****************************************
 
 //Iniciar sesión
 exports.loginUser = (req, res) => {
@@ -205,48 +254,14 @@ exports.loginUser = (req, res) => {
                 const esMiembro = comiteResults[0].miembro_comite;
                 // Lógica de verificación (AJUSTAR SEGÚN TU CAMPO miembro_comite)
                 console.log(esMiembro);
-                if (esMiembro === '1') {
+                if (esMiembro === "1") {
                   roles.push("miembro_comite");
                 }
               }
 
               // Continuar con la consulta de autor
               const sqlAutor = "SELECT * FROM autor WHERE id_usuario = ?";
-              db.query(
-                sqlAutor,
-                [usuario.id_usuario],
-                (err, autorResults) => {
-                  if (err) {
-                    return res.status(500).json({
-                      message: "Error al verificar rol autor",
-                      error: err,
-                    });
-                  }
-
-                  if (autorResults.length > 0) {
-                    roles.push("Autor");
-                  }
-                  if (roles.length === 0) {
-                    roles.push("Usuario");
-                  }
-
-                  return res.status(200).json({
-                    id: usuario.id_usuario,
-                    nombre: usuario.nombre,
-                    apellido: usuario.apellido,
-                    correo: usuario.correo,
-                    roles: roles,
-                  });
-                }
-              );
-            });
-          } else {
-            // Si no es congresista, continuar con la consulta de autor
-            const sqlAutor = "SELECT * FROM autor WHERE id_usuario = ?";
-            db.query(
-              sqlAutor,
-              [usuario.id_usuario],
-              (err, autorResults) => {
+              db.query(sqlAutor, [usuario.id_usuario], (err, autorResults) => {
                 if (err) {
                   return res.status(500).json({
                     message: "Error al verificar rol autor",
@@ -268,8 +283,34 @@ exports.loginUser = (req, res) => {
                   correo: usuario.correo,
                   roles: roles,
                 });
+              });
+            });
+          } else {
+            // Si no es congresista, continuar con la consulta de autor
+            const sqlAutor = "SELECT * FROM autor WHERE id_usuario = ?";
+            db.query(sqlAutor, [usuario.id_usuario], (err, autorResults) => {
+              if (err) {
+                return res.status(500).json({
+                  message: "Error al verificar rol autor",
+                  error: err,
+                });
               }
-            );
+
+              if (autorResults.length > 0) {
+                roles.push("Autor");
+              }
+              if (roles.length === 0) {
+                roles.push("Usuario");
+              }
+
+              return res.status(200).json({
+                id: usuario.id_usuario,
+                nombre: usuario.nombre,
+                apellido: usuario.apellido,
+                correo: usuario.correo,
+                roles: roles,
+              });
+            });
           }
         }
       );
@@ -280,7 +321,7 @@ exports.loginUser = (req, res) => {
 exports.homeUserInfo = (req, res) => {
   const { id } = req.params;
   const sql = "SELECT * FROM usuario WHERE id_usuario = ?";
-  
+
   db.query(sql, [id], (err, results) => {
     if (err)
       return res
@@ -304,7 +345,8 @@ exports.homeUserInfo = (req, res) => {
         roles.push("Congresista");
 
         // Verificar si el usuario es miembro del comité
-        const sqlComite = "SELECT miembro_comite FROM congresista WHERE id_usuario = ?";
+        const sqlComite =
+          "SELECT miembro_comite FROM congresista WHERE id_usuario = ?";
         db.query(sqlComite, [id], (err, comiteResults) => {
           if (err)
             return res.status(500).json({
@@ -316,7 +358,7 @@ exports.homeUserInfo = (req, res) => {
             const esMiembro = comiteResults[0].miembro_comite;
 
             // Validar si el usuario es miembro del comité
-            if (esMiembro === '1') {
+            if (esMiembro === "1") {
               roles.push("miembro_comite");
             }
           }
@@ -378,7 +420,6 @@ exports.homeUserInfo = (req, res) => {
   });
 };
 
-
 //Registrar un usuario y su autor
 exports.registerUserAndAuthor = (req, res) => {
   const { name, lastName, email } = req.body;
@@ -414,9 +455,10 @@ exports.registerUserAndAuthor = (req, res) => {
         }
 
         // Si el procedimiento almacenado tiene éxito
-        res.status(201).json({ message: "Usuario y autor registrados correctamente" });
+        res
+          .status(201)
+          .json({ message: "Usuario y autor registrados correctamente" });
       }
     );
   });
 };
-
