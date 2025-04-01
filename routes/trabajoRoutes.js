@@ -6,7 +6,9 @@ const {
     validarCongresista,
     buscarTrabajoPorTitulo,
     getAutoresPorTrabajo,
-    subirArchivo 
+    getTrabajos,
+    getTrabajo,
+    updateTrabajo
 } = require("../controllers/trabajosController");
 
 const router = express.Router();
@@ -17,6 +19,8 @@ router.post("/SubirTrabajos", SubirTrabajo);
 router.post("/validarCongresista", validarCongresista);
 router.get("/buscar", buscarTrabajoPorTitulo);
 router.get("/:id_trabajo/autores", getAutoresPorTrabajo);
-router.post("/subir-archivo", subirArchivo);
+router.get("/trabajos", getTrabajos);
+router.get("/getTrabajo/:id", getTrabajo);
+router.put("/actualizarTrabajo/:id/:trabajoAceptado", updateTrabajo);
 
 module.exports = router;
