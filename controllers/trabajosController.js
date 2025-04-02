@@ -130,8 +130,8 @@ exports.buscarTrabajoPorTitulo = (req, res) => {
 			.json({ message: "El título es requerido para la búsqueda" });
 	}
 
-	const query = "SELECT * FROM trabajo WHERE titulo LIKE ?";
-	db.query(query, [`%${titulo}%`], (err, results) => {
+	const query = "SELECT * FROM trabajo WHERE titulo LIKE ? AND trabajoAceptado = ?";
+	db.query(query, [`%${titulo}%`, 'S'], (err, results) => {
 		if (err) {
 			console.error("Error al buscar trabajos:", err);
 			return res.status(500).json({ message: "Error interno del servidor" });
