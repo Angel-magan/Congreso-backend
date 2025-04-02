@@ -60,7 +60,7 @@ exports.SubirTrabajo = (req, res) => {
 // Funciones auxiliares para interactuar con la base de datos
 function insertarTrabajo(titulo, abstract, urlArchivo) {
 	return new Promise((resolve, reject) => {
-		const sql = "INSERT INTO trabajo (titulo, abstract, url) VALUES (?, ?, ?)";
+		const sql = "INSERT INTO trabajo (titulo, abstract, url, trabajoAceptado) VALUES (?, ?, ?, '0')";
 		db.query(sql, [titulo, abstract, urlArchivo], (err, result) => {
 			if (err) {
 				reject(err);
@@ -164,4 +164,93 @@ exports.getAutoresPorTrabajo= (req, res) => {
 		}
 		res.json(results);
 	});
+};
+
+//Obtiene todos los trabajos
+exports.getTrabajos = (req, res) => {
+    const sql = `
+        SELECT 
+            id_trabajo,
+            titulo,
+            CONVERT(abstract USING utf8) AS abstract,
+            url, 
+            trabajoAceptado
+        FROM 
+            trabajo
+    `;
+
+    db.query(sql, (err, result) => {
+        if (err) {
+            return res.status(500).send(err);
+        }
+
+        const trabajos = result.map((trabajo) => ({
+            id: trabajo.id_trabajo,
+            titulo: trabajo.titulo,
+            abstract: trabajo.abstract, 
+            url: trabajo.url,
+            trabajoAceptado: trabajo.trabajoAceptado
+        }));
+
+        res.json(trabajos);
+    });
+};
+
+
+//Obtiene un trabajo por el id
+exports.getTrabajo = (req, res) => {
+    const id = req.params.id;
+    const sql = `
+        SELECT 
+            id_trabajo,
+            titulo,
+            CONVERT(abstract USING utf8) AS abstract,
+            CONVERT(url USING utf8) AS url, 
+            trabajoAceptado
+        FROM 
+            trabajo
+        WHERE id_trabajo = ?
+    `;
+
+    db.query(sql, [id], (err, result) => {
+        if (err) {
+            return res.status(500).send(err);
+        }
+
+        if (result.length === 0) {
+            return res.status(404).send("Trabajo no encontrado");
+        }
+
+		
+        const trabajo = {
+            id: result[0].id_trabajo,
+            titulo: result[0].titulo,
+            abstract: result[0].abstract,
+            url: result[0].url,
+            trabajoAceptado: result[0].trabajoAceptado
+        };
+
+        res.json(trabajo);
+    });
+};
+
+exports.updateTrabajo = (req, res) => {
+    const id = req.params.id;
+    const trabajoAceptado = req.params.trabajoAceptado;
+
+	console.log("Id: " + {id} + "y valor de trabajoAceptado:" + {trabajoAceptado})
+
+    const sql = `
+        UPDATE trabajo
+        SET trabajoAceptado = ?
+        WHERE id_trabajo = ?
+    `;
+
+    db.query(sql, [trabajoAceptado, id], (err, result) => {
+        if (err) {
+            return res.status(500).send(err);
+        }
+
+        res.json({ message: "Trabajo actualizado correctamente." });
+    });
 };
