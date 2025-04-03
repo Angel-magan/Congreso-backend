@@ -462,3 +462,27 @@ exports.registerUserAndAuthor = (req, res) => {
     );
   });
 };
+
+
+exports.getAutoresNoCongresistas = (req, res) => {
+  const query = `
+        SELECT 
+            u.nombre,
+            u.apellido,
+            u.correo
+        FROM autor a
+        JOIN usuario u ON a.id_usuario = u.id_usuario
+        WHERE a.id_usuario NOT IN (
+            SELECT c.id_usuario
+            FROM congresista c
+        );
+    `;
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error(err);
+            res.status(500).send("Error fetching autores no congresistas");
+        } else {
+            res.json(results);
+        }
+    });
+};
