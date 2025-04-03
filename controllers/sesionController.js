@@ -151,7 +151,7 @@ exports.getAsistenciaPorUsuario = (req, res) => {
         INNER JOIN trabajo t ON t.id_trabajo = dts.id_trabajo 
         INNER JOIN asistencia a ON a.id_sesion = s.id_sesion
 
-            WHERE a.id_congresista = ? && s.fecha_hora>CURDATE()`;
+            WHERE a.id_congresista = ? AND s.fecha_hora>NOW()`;
 
 
 

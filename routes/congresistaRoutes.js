@@ -7,7 +7,6 @@ const {
   obtenerEvolucionInscripciones,
   obtenerNotificaciones,
   obtenerCongresistasConTrabajos,
-    registrarCongresista,
     getInfoCongressman,
     getInfoAuthor,
     getCongresistas
