@@ -9,6 +9,8 @@ const {
   getSesionesReporte,
   getChairmansReporte,
   getDiaMasTrabajos
+  crearSesion,
+  getChairmanDisponibles
 } = require("../controllers/sesionController");
 
 const router = express.Router();
@@ -22,5 +24,7 @@ router.get("/getAsistenciaPorUsuario/:id_usuario", getAsistenciaPorUsuario);
 router.get("/getSesionesReporte", getSesionesReporte);
 router.get("/getChairmansReporte", getChairmansReporte);
 router.get("/getDiaMasTrabajos", getDiaMasTrabajos);
+router.post("/crear-sesion", crearSesion);
+router.get("/chairman-disponibles", getChairmanDisponibles); 
 
 module.exports = router;
