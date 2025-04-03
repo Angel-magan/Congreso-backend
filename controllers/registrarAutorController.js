@@ -2,69 +2,96 @@ const db = require("../config/db");
 
 // Obtener datos de un usuario por ID
 exports.getUsuarioById = (req, res) => {
-    const userId = req.params.id;
+  const userId = req.params.id;
 
-    // Consulta para obtener los datos del usuario y, si es congresista, el id_congresista
-    const sql = `
+  // Consulta para obtener los datos del usuario y, si es congresista, el id_congresista
+  const sql = `
         SELECT u.nombre, u.apellido, u.correo, c.id_congresista
         FROM usuario u
         LEFT JOIN congresista c ON u.id_usuario = c.id_usuario
         WHERE u.id_usuario = ?`;
 
-    db.query(sql, [userId], (err, result) => {
-        if (err) {
-            return res.status(500).json({ message: "Error al obtener usuario", error: err.message });
-        }
-        if (result.length === 0) {
-            return res.status(404).json({ message: "Usuario no encontrado" });
-        }
+  db.query(sql, [userId], (err, result) => {
+    if (err) {
+      return res
+        .status(500)
+        .json({ message: "Error al obtener usuario", error: err.message });
+    }
+    if (result.length === 0) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
 
-        // Devolver los datos, incluyendo id_congresista si existe
-        const usuario = result[0];
-        const response = {
-            nombre: usuario.nombre,
-            apellido: usuario.apellido,
-            correo: usuario.correo,
-            idCongresista: usuario.id_congresista || null, // Si no tiene id_congresista, lo dejamos como null
-        };
+    // Devolver los datos, incluyendo id_congresista si existe
+    const usuario = result[0];
+    const response = {
+      nombre: usuario.nombre,
+      apellido: usuario.apellido,
+      correo: usuario.correo,
+      idCongresista: usuario.id_congresista || null, // Si no tiene id_congresista, lo dejamos como null
+    };
 
-        res.json(response);
-    });
+    res.json(response);
+  });
 };
-
 
 // Registrar autor
 exports.registrarAutor = (req, res) => {
-    console.log("Datos recibidos en el backend:", req.body);
+  console.log("Datos recibidos en el backend:", req.body);
 
-    const { id_usuario, id_congresista } = req.body;
+  const { id_usuario, id_congresista } = req.body;
 
-    if (!id_usuario) {
-        return res.status(400).json({ message: "Error: id_usuario es requerido" });
+  if (!id_usuario) {
+    return res.status(400).json({ message: "Error: id_usuario es requerido" });
+  }
+
+  // Verificar si ya existe un autor con el mismo id_usuario
+  const checkSql = "SELECT COUNT(*) AS existe FROM autor WHERE id_usuario = ?";
+  db.query(checkSql, [id_usuario], (err, result) => {
+    if (err) {
+      return res
+        .status(500)
+        .json({ message: "Error al verificar autor", error: err.message });
     }
 
-    // Verificar si ya existe un autor con el mismo id_usuario
-    const checkSql = "SELECT COUNT(*) AS existe FROM autor WHERE id_usuario = ?";
-    db.query(checkSql, [id_usuario], (err, result) => {
-        if (err) {
-            return res.status(500).json({ message: "Error al verificar autor", error: err.message });
-        }
+    if (result[0].existe > 0) {
+      return res
+        .status(400)
+        .json({ message: "Este autor ya está registrado." });
+    }
 
-        if (result[0].existe > 0) {
-            return res.status(400).json({ message: "Este autor ya está registrado." });
-        }
-
-        // Si no existe, registrar al autor
-        const insertSql = "INSERT INTO autor (id_usuario, id_congresista) VALUES (?, ?)";
-        db.query(insertSql, [id_usuario, id_congresista || null], (err, result) => {
-            if (err) {
-                return res.status(500).json({ message: "Error al registrar autor", error: err.message });
-            }
-            res.json({ success: true, message: "Autor registrado correctamente" });
-        });
+    // Si no existe, registrar al autor
+    const insertSql =
+      "INSERT INTO autor (id_usuario, id_congresista) VALUES (?, ?)";
+    db.query(insertSql, [id_usuario, id_congresista || null], (err, result) => {
+      if (err) {
+        return res
+          .status(500)
+          .json({ message: "Error al registrar autor", error: err.message });
+      }
+      res.json({ success: true, message: "Autor registrado correctamente" });
     });
+  });
 };
 
+// Grafica  top 10 de autores con más trabajos
+exports.obtenerTopTenAutores = (req, res) => {
+  const sql = `
+      SELECT u.nombre, COUNT(dt.id_trabajo) AS cantidad_trabajos
+        FROM detalle_trabajo_autor dt
+        JOIN autor a ON dt.id_autor = a.id_autor
+        JOIN usuario u ON a.id_usuario = u.id_usuario
+        GROUP BY a.id_autor
+        ORDER BY cantidad_trabajos DESC
+        LIMIT 10;
+    `;
 
-
-
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("Error al obtener el top 10 de autores:", err);
+      return res
+        .status(500)
+        .json({ message: "Error al obtener datos", error: err });
+    }
+    res.status(200).json(results);
+  });
+};
