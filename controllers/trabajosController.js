@@ -60,7 +60,7 @@ exports.SubirTrabajo = (req, res) => {
 // Funciones auxiliares para interactuar con la base de datos
 function insertarTrabajo(titulo, abstract, urlArchivo) {
 	return new Promise((resolve, reject) => {
-		const sql = "INSERT INTO trabajo (titulo, abstract, url, trabajoAceptado) VALUES (?, ?, ?, '0')";
+		const sql = "INSERT INTO trabajo (titulo, abstract, url, trabajoAceptado) VALUES (?, ?, ?, '2')";
 		db.query(sql, [titulo, abstract, urlArchivo], (err, result) => {
 			if (err) {
 				reject(err);
@@ -140,7 +140,7 @@ exports.buscarTrabajoPorTitulo = (req, res) => {
 	});
 };
 
-exports.getAutoresPorTrabajo= (req, res) => {
+exports.getAutoresPorTrabajo = (req, res) => {
 	const { id_trabajo } = req.params;
 
 	const query = `
@@ -168,7 +168,7 @@ exports.getAutoresPorTrabajo= (req, res) => {
 
 //Obtiene todos los trabajos
 exports.getTrabajos = (req, res) => {
-    const sql = `
+	const sql = `
         SELECT 
             id_trabajo,
             titulo,
@@ -179,28 +179,28 @@ exports.getTrabajos = (req, res) => {
             trabajo
     `;
 
-    db.query(sql, (err, result) => {
-        if (err) {
-            return res.status(500).send(err);
-        }
+	db.query(sql, (err, result) => {
+		if (err) {
+			return res.status(500).send(err);
+		}
 
-        const trabajos = result.map((trabajo) => ({
-            id: trabajo.id_trabajo,
-            titulo: trabajo.titulo,
-            abstract: trabajo.abstract, 
-            url: trabajo.url,
-            trabajoAceptado: trabajo.trabajoAceptado
-        }));
+		const trabajos = result.map((trabajo) => ({
+			id: trabajo.id_trabajo,
+			titulo: trabajo.titulo,
+			abstract: trabajo.abstract,
+			url: trabajo.url,
+			trabajoAceptado: trabajo.trabajoAceptado
+		}));
 
-        res.json(trabajos);
-    });
+		res.json(trabajos);
+	});
 };
 
 
 //Obtiene un trabajo por el id
 exports.getTrabajo = (req, res) => {
-    const id = req.params.id;
-    const sql = `
+	const id = req.params.id;
+	const sql = `
         SELECT 
             id_trabajo,
             titulo,
@@ -212,47 +212,91 @@ exports.getTrabajo = (req, res) => {
         WHERE id_trabajo = ?
     `;
 
-    db.query(sql, [id], (err, result) => {
-        if (err) {
-            return res.status(500).send(err);
-        }
+	db.query(sql, [id], (err, result) => {
+		if (err) {
+			return res.status(500).send(err);
+		}
 
-        if (result.length === 0) {
-            return res.status(404).send("Trabajo no encontrado");
-        }
+		if (result.length === 0) {
+			return res.status(404).send("Trabajo no encontrado");
+		}
 
-		
-        const trabajo = {
-            id: result[0].id_trabajo,
-            titulo: result[0].titulo,
-            abstract: result[0].abstract,
-            url: result[0].url,
-            trabajoAceptado: result[0].trabajoAceptado
-        };
 
-        res.json(trabajo);
-    });
+		const trabajo = {
+			id: result[0].id_trabajo,
+			titulo: result[0].titulo,
+			abstract: result[0].abstract,
+			url: result[0].url,
+			trabajoAceptado: result[0].trabajoAceptado
+		};
+
+		res.json(trabajo);
+	});
 };
 
 exports.updateTrabajo = (req, res) => {
-    const id = req.params.id;
-    const trabajoAceptado = req.params.trabajoAceptado;
+	const id = req.params.id;
+	const trabajoAceptado = req.params.trabajoAceptado;
 
-	console.log("Id: " + {id} + "y valor de trabajoAceptado:" + {trabajoAceptado})
+	console.log("Id: " + { id } + "y valor de trabajoAceptado:" + { trabajoAceptado })
 
-    const sql = `
+	const sql = `
         UPDATE trabajo
         SET trabajoAceptado = ?
         WHERE id_trabajo = ?
     `;
 
-    db.query(sql, [trabajoAceptado, id], (err, result) => {
-        if (err) {
-            return res.status(500).send(err);
-        }
+	db.query(sql, [trabajoAceptado, id], (err, result) => {
+		if (err) {
+			return res.status(500).send(err);
+		}
 
-        res.json({ message: "Trabajo actualizado correctamente." });
+		res.json({ message: "Trabajo actualizado correctamente." });
+	});
+};
+
+//Obtiene un trabajo por el id
+exports.getTrabajosReporte = (req, res) => {
+	const query = `
+	SELECT t.titulo,CONVERT(t.abstract USING utf8) AS resumen, GROUP_CONCAT(u.nombre, ' ', u.apellido) AS autores
+	FROM trabajo t
+	JOIN detalle_trabajo_autor dta ON t.id_trabajo = dta.id_trabajo
+	JOIN autor a ON dta.id_autor = a.id_autor
+	JOIN usuario u ON a.id_usuario = u.id_usuario
+	GROUP BY t.id_trabajo;
+`;
+	db.query(query, (err, results) => {
+		if (err) {
+			console.error(err);
+			res.status(500).send("Error fetching trabajos");
+		} else {
+			res.json(results);
+		}
+	});
+};
+
+exports.getTrabajosNoAceptados = (req, res) => {
+	const query = `
+        SELECT 
+            t.titulo,
+            CONVERT(t.abstract USING utf8) AS resumen,
+            GROUP_CONCAT(u.nombre, ' ', u.apellido) AS autores
+        FROM trabajo t
+        JOIN detalle_trabajo_autor dta ON t.id_trabajo = dta.id_trabajo
+        JOIN autor a ON dta.id_autor = a.id_autor
+        JOIN usuario u ON a.id_usuario = u.id_usuario
+        WHERE t.trabajoAceptado = '0' or t.trabajoAceptado = null
+        GROUP BY t.id_trabajo;
+    `;
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error(err);
+            res.status(500).send("Error fetching trabajos no aceptados");
+        } else {
+            res.json(results);
+        }
     });
+
 };
 
 // Obtiene los trabajos de un autor
@@ -291,5 +335,6 @@ exports.getTrabajosPorAutor = (req, res) => {
         res.json(trabajos);
     });
 };
+
 
 
