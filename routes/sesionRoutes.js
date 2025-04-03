@@ -8,7 +8,7 @@ const {
   getAsistenciaPorUsuario,
   getSesionesReporte,
   getChairmansReporte,
-  getDiaMasTrabajos
+  getDiaMasTrabajos,
   crearSesion,
   getChairmanDisponibles
 } = require("../controllers/sesionController");
