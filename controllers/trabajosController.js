@@ -279,7 +279,7 @@ exports.getTrabajosNoAceptados = (req, res) => {
 	const query = `
         SELECT 
             t.titulo,
-            t.abstract AS resumen,
+            CONVERT(t.abstract USING utf8) AS resumen,
             GROUP_CONCAT(u.nombre, ' ', u.apellido) AS autores
         FROM trabajo t
         JOIN detalle_trabajo_autor dta ON t.id_trabajo = dta.id_trabajo
