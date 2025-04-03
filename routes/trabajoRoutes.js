@@ -9,6 +9,7 @@ const {
     getTrabajos,
     getTrabajo,
     updateTrabajo,
+    getTrabajosPorAutor,
     getTrabajosReporte,
     getTrabajosNoAceptados
 } = require("../controllers/trabajosController");
@@ -24,6 +25,7 @@ router.get("/:id_trabajo/autores", getAutoresPorTrabajo);
 router.get("/trabajos", getTrabajos);
 router.get("/getTrabajo/:id", getTrabajo);
 router.put("/actualizarTrabajo/:id/:trabajoAceptado", updateTrabajo);
+router.get("/getTrabajosPorAutor/:id_autor", getTrabajosPorAutor);
 router.get("/getTrabajosReporte", getTrabajosReporte);
 router.get("/getTrabajosNoAceptados", getTrabajosNoAceptados);
 

@@ -159,6 +159,69 @@ function formatPhoneNumber(phoneNumber) {
     return `+503${cleanedNumber}`;
 }
 
+
+
+exports.getInfoCongressman = (req, res) => {
+    const { id } = req.params;
+    const sql = `SELECT c.id_congresista, c.institucion, c.miembro_comite, c.telefono, c.notificacion, c.fecha_registro 
+                FROM usuario u
+                INNER JOIN congresista c ON u.id_usuario = c.id_usuario
+                WHERE u.id_usuario = ?`;
+
+    db.query(sql, [id], (err, results) => {
+        if (err) {
+            return res.status(500).json({ message: "Error en la consulta", error: err });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ message: "Congresista no encontrado" });
+        }
+
+        const congresista = results[0];
+
+
+        return res.status(200).json({
+            id_congresista: congresista.id_congresista,
+            institucion: congresista.institucion,
+            telefono: congresista.telefono,
+            notificacion: congresista.notificacion,
+            miembro_comite: congresista.miembro_comite,
+            fecha_registro: congresista.fecha_registro,
+        });
+    });
+};
+
+exports.getInfoAuthor = (req, res) => {
+    const { id } = req.params;
+    console.log("ID recibido en la API:", id); // 🔍 Verifica el ID recibido
+
+    const sql = `
+        SELECT a.id_autor, a.id_usuario, a.id_congresista, a.fecha_registro
+        FROM autor a
+        WHERE a.id_usuario = ?;
+    `;
+
+    db.query(sql, [id], (err, results) => {
+        if (err) {
+            return res.status(500).json({ message: "Error en la consulta", error: err });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ message: "Autor no encontrado" });
+        }
+
+        const autor = results[0];
+
+        return res.status(200).json({
+            id_autor: autor.id_autor,
+            id_usuario: autor.id_usuario,
+            id_congresista: autor.id_congresista,
+            fecha_registro: autor.fecha_registro,
+        });
+    });
+};
+
+
 exports.getCongresistas = (req, res) => {
     const query = `
         SELECT c.id_congresista, u.nombre, u.apellido, c.institucion, c.telefono
@@ -174,3 +237,4 @@ exports.getCongresistas = (req, res) => {
         }
     });
 };
+

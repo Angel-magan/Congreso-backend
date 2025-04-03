@@ -296,4 +296,45 @@ exports.getTrabajosNoAceptados = (req, res) => {
             res.json(results);
         }
     });
+
 };
+
+// Obtiene los trabajos de un autor
+exports.getTrabajosPorAutor = (req, res) => {
+    const { id_autor } = req.params;
+
+    const sql = `
+        SELECT 
+            t.id_trabajo,
+            t.titulo,
+            t.abstract,
+            t.url,
+            t.trabajoAceptado
+        FROM 
+            trabajo t
+        JOIN 
+            detalle_trabajo_autor dta ON t.id_trabajo = dta.id_trabajo
+        WHERE 
+            dta.id_autor = ?
+    `;
+
+    db.query(sql, [id_autor], (err, result) => {
+        if (err) {
+            console.error("Error al obtener los trabajos:", err);
+            return res.status(500).json({ error: "Error en el servidor" });
+        }
+
+        const trabajos = result.map((trabajo) => ({
+            id: trabajo.id_trabajo,
+            titulo: trabajo.titulo,
+            abstract: trabajo.abstract,
+            url: trabajo.url,
+            trabajoAceptado: trabajo.trabajoAceptado
+        }));
+
+        res.json(trabajos);
+    });
+};
+
+
+
