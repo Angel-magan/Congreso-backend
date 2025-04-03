@@ -8,7 +8,9 @@ const {
     getAutoresPorTrabajo,
     getTrabajos,
     getTrabajo,
-    updateTrabajo
+    updateTrabajo,
+    getTrabajosPorAutor,
+    
 } = require("../controllers/trabajosController");
 
 const router = express.Router();
@@ -22,5 +24,7 @@ router.get("/:id_trabajo/autores", getAutoresPorTrabajo);
 router.get("/trabajos", getTrabajos);
 router.get("/getTrabajo/:id", getTrabajo);
 router.put("/actualizarTrabajo/:id/:trabajoAceptado", updateTrabajo);
+router.get("/getTrabajosPorAutor/:id_autor", getTrabajosPorAutor);
+
 
 module.exports = router;
