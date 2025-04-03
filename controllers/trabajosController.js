@@ -2,7 +2,7 @@ const db = require("../config/db");
 
 // Obtener todos los autores
 exports.getAutores = (req, res) => {
-	const sql = `
+  const sql = `
         SELECT 
             a.id_autor,
             u.nombre,
@@ -15,20 +15,20 @@ exports.getAutores = (req, res) => {
             usuario u ON a.id_usuario = u.id_usuario
     `;
 
-	db.query(sql, (err, result) => {
-		if (err) {
-			return res.status(500).send(err);
-		}
+  db.query(sql, (err, result) => {
+    if (err) {
+      return res.status(500).send(err);
+    }
 
-		const autores = result.map((autor) => ({
-			id: autor.id_autor,
-			nombre: `${autor.nombre} ${autor.apellido}`,
-			correo: autor.correo,
-			esCongresista: autor.id_congresista !== null, //  Si no es null, es congresista
-		}));
+    const autores = result.map((autor) => ({
+      id: autor.id_autor,
+      nombre: `${autor.nombre} ${autor.apellido}`,
+      correo: autor.correo,
+      esCongresista: autor.id_congresista !== null, //  Si no es null, es congresista
+    }));
 
-		res.json(autores);
-	});
+    res.json(autores);
+  });
 };
 
 // Verifica si al menos uno de los co-autores es congresista
@@ -76,78 +76,78 @@ function insertarTrabajo(titulo, abstract, urlArchivo, idCongresista) {
 
 
 function insertarAutoresTrabajo(trabajoId, autores) {
-	return new Promise((resolve, reject) => {
-		const promises = autores.map((autor) => {
-			// Asegúrate de que autor sea un número o un objeto con un id numérico
-			const autorId = typeof autor === "object" ? autor.id : autor; // Extrae el ID si es un objeto
-			return new Promise((resolve, reject) => {
-				const sql =
-					"INSERT INTO detalle_trabajo_autor (id_trabajo, id_autor) VALUES (?, ?)";
-				db.query(sql, [trabajoId, autorId], (err, result) => {
-					if (err) {
-						reject(err);
-					} else {
-						resolve(result);
-					}
-				});
-			});
-		});
+  return new Promise((resolve, reject) => {
+    const promises = autores.map((autor) => {
+      // Asegúrate de que autor sea un número o un objeto con un id numérico
+      const autorId = typeof autor === "object" ? autor.id : autor; // Extrae el ID si es un objeto
+      return new Promise((resolve, reject) => {
+        const sql =
+          "INSERT INTO detalle_trabajo_autor (id_trabajo, id_autor) VALUES (?, ?)";
+        db.query(sql, [trabajoId, autorId], (err, result) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(result);
+          }
+        });
+      });
+    });
 
-		Promise.all(promises)
-			.then(() => resolve())
-			.catch((err) => reject(err));
-	});
+    Promise.all(promises)
+      .then(() => resolve())
+      .catch((err) => reject(err));
+  });
 }
 
 exports.validarCongresista = (req, res) => {
-	const { idsUsuarios } = req.body;
+  const { idsUsuarios } = req.body;
 
-	if (!idsUsuarios || idsUsuarios.length === 0) {
-		return res
-			.status(400)
-			.json({ message: "No se enviaron autores para validar" });
-	}
+  if (!idsUsuarios || idsUsuarios.length === 0) {
+    return res
+      .status(400)
+      .json({ message: "No se enviaron autores para validar" });
+  }
 
-	const sql = `
+  const sql = `
         SELECT COUNT(*) AS cantidad FROM congresista WHERE id_usuario IN (?);
     `;
 
-	db.query(sql, [idsUsuarios], (err, result) => {
-		if (err) {
-			return res
-				.status(500)
-				.json({ message: "Error al validar congresistas", error: err.message });
-		}
+  db.query(sql, [idsUsuarios], (err, result) => {
+    if (err) {
+      return res
+        .status(500)
+        .json({ message: "Error al validar congresistas", error: err.message });
+    }
 
-		const esValido = result[0].cantidad > 0; // Si hay al menos un congresista, es válido
-		res.json({ esValido });
-	});
+    const esValido = result[0].cantidad > 0; // Si hay al menos un congresista, es válido
+    res.json({ esValido });
+  });
 };
 
 // Buscar el trabajo para la HU Crear Sesión
 exports.buscarTrabajoPorTitulo = (req, res) => {
-	const { titulo } = req.query;
+  const { titulo } = req.query;
 
-	if (!titulo) {
-		return res
-			.status(400)
-			.json({ message: "El título es requerido para la búsqueda" });
-	}
+  if (!titulo) {
+    return res
+      .status(400)
+      .json({ message: "El título es requerido para la búsqueda" });
+  }
 
-	const query = "SELECT * FROM trabajo WHERE titulo LIKE ?";
-	db.query(query, [`%${titulo}%`], (err, results) => {
-		if (err) {
-			console.error("Error al buscar trabajos:", err);
-			return res.status(500).json({ message: "Error interno del servidor" });
-		}
-		res.json(results);
-	});
+  const query = "SELECT * FROM trabajo WHERE titulo LIKE ?";
+  db.query(query, [`%${titulo}%`], (err, results) => {
+    if (err) {
+      console.error("Error al buscar trabajos:", err);
+      return res.status(500).json({ message: "Error interno del servidor" });
+    }
+    res.json(results);
+  });
 };
 
 exports.getAutoresPorTrabajo = (req, res) => {
 	const { id_trabajo } = req.params;
 
-	const query = `
+  const query = `
         SELECT 
             a.id_autor,
             u.nombre,
@@ -161,13 +161,39 @@ exports.getAutoresPorTrabajo = (req, res) => {
             WHERE dta.id_trabajo = ? AND a.id_congresista IS NOT NULL;
     `;
 
-	db.query(query, [id_trabajo], (err, results) => {
-		if (err) {
-			console.error("Error al obtener autores congresistas:", err);
-			return res.status(500).json({ error: "Error en el servidor" });
-		}
-		res.json(results);
-	});
+  db.query(query, [id_trabajo], (err, results) => {
+    if (err) {
+      console.error("Error al obtener autores congresistas:", err);
+      return res.status(500).json({ error: "Error en el servidor" });
+    }
+    res.json(results);
+  });
+};
+
+//Grafica de pastel para trabajos aceptados
+exports.obtenerEstadoTrabajos = (req, res) => {
+  const sql = `
+	  SELECT 
+		CASE 
+		  WHEN trabajoAceptado = '1' THEN 'Aceptado'
+		  WHEN trabajoAceptado = '0' THEN 'No Aceptado'
+		END AS estado,
+		COUNT(*) AS cantidad
+	  FROM trabajo
+	  WHERE trabajoAceptado IN ('0', '1')
+	  GROUP BY trabajoAceptado;
+	`;
+
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("Error al obtener los estados de los trabajos:", err);
+      return res
+        .status(500)
+        .json({ message: "Error al obtener datos", error: err });
+    }
+
+    res.status(200).json(results);
+  });
 };
 
 //Obtiene todos los trabajos

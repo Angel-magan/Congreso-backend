@@ -1,6 +1,12 @@
 const express = require("express");
 
 const {
+  getAutores,
+  SubirTrabajo,
+  validarCongresista,
+  buscarTrabajoPorTitulo,
+  getAutoresPorTrabajo,
+  obtenerEstadoTrabajos,
     getAutores,
     SubirTrabajo,
     validarCongresista,
@@ -22,6 +28,7 @@ router.post("/SubirTrabajos", SubirTrabajo);
 router.post("/validarCongresista", validarCongresista);
 router.get("/buscar", buscarTrabajoPorTitulo);
 router.get("/:id_trabajo/autores", getAutoresPorTrabajo);
+router.get("/estadoTrabajos", obtenerEstadoTrabajos);
 router.get("/trabajos", getTrabajos);
 router.get("/getTrabajo/:id", getTrabajo);
 router.put("/actualizarTrabajo/:id/:trabajoAceptado", updateTrabajo);
