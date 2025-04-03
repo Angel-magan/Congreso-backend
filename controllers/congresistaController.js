@@ -158,3 +158,19 @@ function formatPhoneNumber(phoneNumber) {
     // Agregar el código de país
     return `+503${cleanedNumber}`;
 }
+
+exports.getCongresistas = (req, res) => {
+    const query = `
+        SELECT c.id_congresista, u.nombre, u.apellido, c.institucion, c.telefono
+        FROM congresista c
+        JOIN usuario u ON c.id_usuario = u.id_usuario;
+    `;
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error(err);
+            res.status(500).send("Error fetching congresistas");
+        } else {
+            res.json(results);
+        }
+    });
+};
