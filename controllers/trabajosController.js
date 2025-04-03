@@ -131,7 +131,7 @@ exports.buscarTrabajoPorTitulo = (req, res) => {
 	}
 
 	const query = "SELECT * FROM trabajo WHERE titulo LIKE ? AND trabajoAceptado = ?";
-	db.query(query, [`%${titulo}%`, 'S'], (err, results) => {
+	db.query(query, [`%${titulo}%`, '1'], (err, results) => {
 		if (err) {
 			console.error("Error al buscar trabajos:", err);
 			return res.status(500).json({ message: "Error interno del servidor" });
