@@ -4,6 +4,11 @@ const {
   getSesiones,
   obtenerDistribucionSesiones,
   obtenerUsoSalas,
+  getSesionesPorUsuario,
+  getAsistenciaPorUsuario,
+  getSesionesReporte,
+  getChairmansReporte,
+  getDiaMasTrabajos
 } = require("../controllers/sesionController");
 
 const router = express.Router();
@@ -12,5 +17,10 @@ const router = express.Router();
 router.get("/", getSesiones);
 router.get("/distribucionSesiones", obtenerDistribucionSesiones);
 router.get("/usoSalas", obtenerUsoSalas);
+router.get("/getSesionesPorUsuario/:id_usuario/:rol", getSesionesPorUsuario); 
+router.get("/getAsistenciaPorUsuario/:id_usuario", getAsistenciaPorUsuario); 
+router.get("/getSesionesReporte", getSesionesReporte);
+router.get("/getChairmansReporte", getChairmansReporte);
+router.get("/getDiaMasTrabajos", getDiaMasTrabajos);
 
 module.exports = router;

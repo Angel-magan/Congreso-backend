@@ -7,6 +7,10 @@ const {
   obtenerEvolucionInscripciones,
   obtenerNotificaciones,
   obtenerCongresistasConTrabajos,
+    registrarCongresista,
+    getInfoCongressman,
+    getInfoAuthor,
+    getCongresistas
 } = require("../controllers/congresistaController");
 
 const router = express.Router(); // Crear un enrutador y para definir las rutas
@@ -18,5 +22,7 @@ router.get("/relacionesCongresistas", obtenerRelacionesCongresistas);
 router.get("/evolucionInscripciones", obtenerEvolucionInscripciones);
 router.get("/notificaciones", obtenerNotificaciones);
 router.get("/congresistasTrabajos", obtenerCongresistasConTrabajos);
-
+router.get("/congressmanInfo/:id", getInfoCongressman);
+router.get("/getInfoAuthor/:id", getInfoAuthor);
+router.get("/getCongresistas", getCongresistas);
 module.exports = router;
