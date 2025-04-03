@@ -10,7 +10,8 @@ const {
     getTrabajo,
     updateTrabajo,
     getTrabajosPorAutor,
-    
+    getTrabajosReporte,
+    getTrabajosNoAceptados
 } = require("../controllers/trabajosController");
 
 const router = express.Router();
@@ -25,6 +26,7 @@ router.get("/trabajos", getTrabajos);
 router.get("/getTrabajo/:id", getTrabajo);
 router.put("/actualizarTrabajo/:id/:trabajoAceptado", updateTrabajo);
 router.get("/getTrabajosPorAutor/:id_autor", getTrabajosPorAutor);
-
+router.get("/getTrabajosReporte", getTrabajosReporte);
+router.get("/getTrabajosNoAceptados", getTrabajosNoAceptados);
 
 module.exports = router;
