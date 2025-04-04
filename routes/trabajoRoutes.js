@@ -7,17 +7,12 @@ const {
   buscarTrabajoPorTitulo,
   getAutoresPorTrabajo,
   obtenerEstadoTrabajos,
-    getAutores,
-    SubirTrabajo,
-    validarCongresista,
-    buscarTrabajoPorTitulo,
-    getAutoresPorTrabajo,
-    getTrabajos,
-    getTrabajo,
-    updateTrabajo,
-    getTrabajosPorAutor,
-    getTrabajosReporte,
-    getTrabajosNoAceptados
+  getTrabajos,
+  getTrabajo,
+  updateTrabajo,
+  getTrabajosPorAutor,
+  getTrabajosReporte,
+  getTrabajosNoAceptados
 } = require("../controllers/trabajosController");
 
 const router = express.Router();
