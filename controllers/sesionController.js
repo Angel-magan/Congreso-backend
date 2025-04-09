@@ -233,69 +233,78 @@ exports.getDiaMasTrabajos = (req, res) => {
 };
 // Validación antes de asignar trabajo a una sesión
 exports.crearSesion = async (req, res) => {
-  const { trabajoId, sesionId, salaId, chairmanId, fecha, hora } = req.body;
+  console.log("Datos recibidos:", req.body);
+
+  const { trabajos, sala, fecha, hora } = req.body;
+  const chairmanId = trabajos[0]?.autor_id; // Extraer chairmanId del primer trabajo
+
+  if (!trabajos || !Array.isArray(trabajos) || trabajos.length === 0) {
+    console.log("Error: Lista de trabajos inválida.");
+    return res.status(400).json({ error: "La lista de trabajos es requerida y debe contener al menos un trabajo." });
+  }
+  if (!sala || !chairmanId || !fecha || !hora) {
+    console.log("Error: Campos faltantes.");
+    return res.status(400).json({ error: "Todos los campos (sala, chairmanId, fecha, hora) son requeridos." });
+  }
+  // const { trabajos, salaId, chairmanId, fecha, hora } = req.body;
 
   try {
-    // Verificar si el trabajo ya está asignado a otra sesión
-    const [existeTrabajo] = await db.query(
-      'SELECT id_trabajo FROM detalle_sesion WHERE id_trabajo = ?',
-      [trabajoId]
-    );
-
-    if (existeTrabajo.length > 0) {
-      return res.status(400).json({ error: 'Este trabajo ya está asignado a otra sesión' });
+    // Verificar si algún trabajo ya está asignado a otra sesión
+    for (const trabajo of trabajos) {
+      const [existeTrabajo] = await db.promise().query(
+        'SELECT id_trabajo FROM detalle_sesion WHERE id_trabajo = ?',
+        [trabajo.id_trabajo]
+      );
+      if (existeTrabajo.length > 0) {
+        return res.status(400).json({ error: `El trabajo ${trabajo.id_trabajo} ya está asignado a otra sesión` });
+      }
     }
 
     // Verificar si la sala está libre en ese día y hora
-    const [salaOcupada] = await db.query(
+    const [salaOcupada] = await db.promise().query(
       'SELECT id_sesion FROM sesion WHERE sala = ? AND DATE(fecha_hora) = ? AND TIME(fecha_hora) = ?',
-      [salaId, fecha, hora]
+      [sala, fecha, hora]
     );
-
     if (salaOcupada.length > 0) {
       return res.status(400).json({ error: 'La sala ya está ocupada en este horario' });
     }
 
     // Verificar si el chairman ya está moderando otra sesión al mismo tiempo
-    const [chairmanOcupado] = await db.query(
+    const [chairmanOcupado] = await db.promise().query(
       'SELECT id_sesion FROM sesion WHERE id_moderador_congresista = ? AND DATE(fecha_hora) = ? AND TIME(fecha_hora) = ?',
       [chairmanId, fecha, hora]
     );
-
     if (chairmanOcupado.length > 0) {
       return res.status(400).json({ error: 'El chairman ya modera otra sesión en este horario' });
     }
 
-    // Si todo está bien, insertar la asignación
-    // Insertar en sesion
-    const [sesionResult] = await db.query(
+    // Insertar la nueva sesión
+    const fecha_hora = `${fecha} ${hora}`;
+    const [sesionResult] = await db.promise().query(
       'INSERT INTO sesion (fecha_hora, sala, id_moderador_congresista) VALUES (?, ?, ?)',
-      [fecha_hora, sala, id_moderador_congresista]
+      [fecha_hora, sala, chairmanId]
     );
-
-    const idSesion = sesionResult.insertId; // Obtener el ID de la sesión recién creada
+    const idSesion = sesionResult.insertId;
 
     // Insertar los trabajos en detalle_sesion
     for (const trabajo of trabajos) {
-      // Obtener el id_autor desde detalle_trabajo_autor
-      const [result] = await db.query(
+      const [result] = await db.promise().query(
         'SELECT id_autor FROM detalle_trabajo_autor WHERE id_trabajo = ?',
         [trabajo.id_trabajo]
       );
-
       const idAutor = result.length > 0 ? result[0].id_autor : null;
 
       if (idAutor) {
-        await db.query(
+        await db.promise().query(
           'INSERT INTO detalle_sesion (id_sesion, id_trabajo, id_ponente_congresista) VALUES (?, ?, ?)',
           [idSesion, trabajo.id_trabajo, idAutor]
         );
       } else {
         console.error(`No se encontró autor para el trabajo ${trabajo.id_trabajo}`);
       }
-
-      res.status(200).json({ mensaje: 'Sesión creada y trabajos asignados correctamente' });
     }
+
+    res.status(200).json({ mensaje: 'Sesión creada y trabajos asignados correctamente' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error interno del servidor' });
