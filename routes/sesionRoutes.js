@@ -28,7 +28,7 @@ router.get("/getSesionesReporte", getSesionesReporte);
 router.get("/getChairmansReporte", getChairmansReporte);
 router.get("/getDiaMasTrabajos", getDiaMasTrabajos);
 router.post("/crearSesion", crearSesion);
-router.get("/chairman-disponibles", getMiembrosDisponibles); 
+router.get("/miembros-comite", getMiembrosDisponibles); 
 router.post("/asistir-sesion", asistirSesion);
 router.get("/verificarAsistencia/:id_congresista/:id_sesion", verificarAsistencia);
 
