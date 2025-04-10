@@ -10,7 +10,10 @@ const {
   getChairmansReporte,
   getDiaMasTrabajos,
   crearSesion,
-  getChairmanDisponibles
+  getMiembrosDisponibles,
+  asistirSesion,
+  verificarAsistencia,
+
 } = require("../controllers/sesionController");
 
 const router = express.Router();
@@ -24,7 +27,9 @@ router.get("/getAsistenciaPorUsuario/:id_usuario", getAsistenciaPorUsuario);
 router.get("/getSesionesReporte", getSesionesReporte);
 router.get("/getChairmansReporte", getChairmansReporte);
 router.get("/getDiaMasTrabajos", getDiaMasTrabajos);
-router.post("/crear-sesion", crearSesion);
-router.get("/chairman-disponibles", getChairmanDisponibles); 
+router.post("/crearSesion", crearSesion);
+router.get("/miembros-comite", getMiembrosDisponibles); 
+router.post("/asistir-sesion", asistirSesion);
+router.get("/verificarAsistencia/:id_congresista/:id_sesion", verificarAsistencia);
 
 module.exports = router;

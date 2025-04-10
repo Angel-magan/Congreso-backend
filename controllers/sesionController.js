@@ -2,18 +2,23 @@ const db = require("../config/db");
 
 //Ver sesiones
 exports.getSesiones = (req, res) => {
-      const sql = `SELECT 
-      s.fecha_hora, 
-      s.sala, 
-      us.nombre AS moderador, 
-      JSON_ARRAYAGG(u.nombre) AS ponentes_trabajo,
-      JSON_ARRAYAGG(t.titulo) AS titulos_trabajos 
-    FROM sesion s
-    INNER JOIN detalle_sesion ds ON s.id_sesion = ds.id_sesion
-    INNER JOIN usuario u ON u.id_usuario = ds.id_ponente_congresista
-    INNER JOIN usuario us ON us.id_usuario = s.id_moderador_congresista
-    INNER JOIN trabajo t ON t.id_trabajo = ds.id_trabajo
-    GROUP BY s.id_sesion;`;
+  const sql = `            
+SELECT
+    s.id_sesion, 
+    s.fecha_hora, 
+    s.sala, 
+    us.nombre AS moderador, 
+    GROUP_CONCAT(DISTINCT u.nombre ORDER BY u.nombre) AS ponentes_trabajo,
+    GROUP_CONCAT(DISTINCT t.titulo ORDER BY t.titulo) AS titulos_trabajos 
+  FROM sesion s
+  INNER JOIN detalle_sesion ds ON s.id_sesion = ds.id_sesion
+  INNER JOIN congresista c ON c.id_congresista = ds.id_ponente_congresista
+  INNER JOIN usuario u ON u.id_usuario = c.id_usuario
+  INNER JOIN usuario us ON us.id_usuario = s.id_moderador_congresista
+  INNER JOIN trabajo t ON t.id_trabajo = ds.id_trabajo
+  GROUP BY s.id_sesion;
+
+`;
     //Ejecutar la consulta y manejar las respuestas con err, result
     db.query(sql, (err, result) => {
       if (err) {
@@ -55,13 +60,13 @@ exports.obtenerDistribucionSesiones = (req, res) => {
 // Uso de salas
 exports.obtenerUsoSalas = (req, res) => {
   const sql = `
-    SELECT 
-        DATE_FORMAT(fecha_hora, '%H:%i') AS horario,
-        COUNT(id_sesion) AS sesiones_activas
-    FROM sesion
-    GROUP BY horario
-    ORDER BY horario;
-  `;
+  SELECT 
+    DATE(fecha_hora) AS fecha,
+    COUNT(*) AS salas_en_uso
+  FROM sesion
+  GROUP BY fecha
+  ORDER BY fecha;
+`;
 
   db.query(sql, (err, results) => {
     if (err) {
@@ -233,89 +238,172 @@ exports.getDiaMasTrabajos = (req, res) => {
 };
 // Validación antes de asignar trabajo a una sesión
 exports.crearSesion = async (req, res) => {
-  const { trabajoId, sesionId, salaId, chairmanId, fecha, hora } = req.body;
+  console.log("Datos recibidos:", req.body);
+
+  const { trabajos, sala, fecha, hora, chairman_id } = req.body;
+
+  if (!trabajos || !Array.isArray(trabajos) || trabajos.length === 0) {
+    console.log("Error: Lista de trabajos inválida.");
+    return res.status(400).json({ error: "La lista de trabajos es requerida y debe contener al menos un trabajo." });
+  }
+  if (!sala || !chairman_id || !fecha || !hora) {
+    console.log("Error: Campos faltantes.");
+    return res.status(400).json({ error: "Todos los campos (sala, chairman, fecha, hora) son requeridos." });
+  }
 
   try {
-    // Verificar si el trabajo ya está asignado a otra sesión
-    const [existeTrabajo] = await db.query(
-      'SELECT id_trabajo FROM detalle_sesion WHERE id_trabajo = ?',
-      [trabajoId]
+    // Verificar si el chairman existe en la tabla usuario
+    const [chairmanExists] = await db.promise().query(
+      'SELECT id_usuario FROM usuario WHERE id_usuario = ?',
+      [chairman_id]
     );
+    if (chairmanExists.length === 0) {
+      console.log(`Error: El chairman con ID ${chairman_id} no existe.`);
+      return res.status(400).json({ error: `El chairman con ID ${chairman_id} no existe.` });
+    }
 
-    if (existeTrabajo.length > 0) {
-      return res.status(400).json({ error: 'Este trabajo ya está asignado a otra sesión' });
+    // Verificar si algún trabajo ya está asignado a otra sesión
+    for (const trabajo of trabajos) {
+      const [existeTrabajo] = await db.promise().query(
+        'SELECT id_trabajo FROM detalle_sesion WHERE id_trabajo = ?',
+        [trabajo.id_trabajo]
+      );
+      if (existeTrabajo.length > 0) {
+        console.log(`Error: El trabajo ${trabajo.id_trabajo} ya está asignado a otra sesión.`);
+        return res.status(400).json({ error: `El trabajo ${trabajo.id_trabajo} ya está asignado a otra sesión.` });
+      }
     }
 
     // Verificar si la sala está libre en ese día y hora
-    const [salaOcupada] = await db.query(
+    const [salaOcupada] = await db.promise().query(
       'SELECT id_sesion FROM sesion WHERE sala = ? AND DATE(fecha_hora) = ? AND TIME(fecha_hora) = ?',
-      [salaId, fecha, hora]
+      [sala, fecha, hora]
     );
-
     if (salaOcupada.length > 0) {
-      return res.status(400).json({ error: 'La sala ya está ocupada en este horario' });
+      console.log("Error: La sala ya está ocupada en este horario.");
+      return res.status(400).json({ error: "La sala ya está ocupada en este horario." });
     }
 
     // Verificar si el chairman ya está moderando otra sesión al mismo tiempo
-    const [chairmanOcupado] = await db.query(
+    const [chairmanOcupado] = await db.promise().query(
       'SELECT id_sesion FROM sesion WHERE id_moderador_congresista = ? AND DATE(fecha_hora) = ? AND TIME(fecha_hora) = ?',
-      [chairmanId, fecha, hora]
+      [chairman_id, fecha, hora]
     );
-
     if (chairmanOcupado.length > 0) {
-      return res.status(400).json({ error: 'El chairman ya modera otra sesión en este horario' });
+      console.log("Error: El chairman ya modera otra sesión en este horario.");
+      return res.status(400).json({ error: "El chairman ya modera otra sesión en este horario." });
     }
 
-    // Si todo está bien, insertar la asignación
-    // Insertar en sesion
-    const [sesionResult] = await db.query(
+    // Insertar la nueva sesión
+    const fecha_hora = `${fecha} ${hora}`;
+    const [sesionResult] = await db.promise().query(
       'INSERT INTO sesion (fecha_hora, sala, id_moderador_congresista) VALUES (?, ?, ?)',
-      [fecha_hora, sala, id_moderador_congresista]
+      [fecha_hora, sala, chairman_id]
     );
+    const idSesion = sesionResult.insertId;
 
-    const idSesion = sesionResult.insertId; // Obtener el ID de la sesión recién creada
-
-    // Insertar los trabajos en detalle_sesion
+    // Procesar los trabajos y traducir id_autor a id_congresista
     for (const trabajo of trabajos) {
-      // Obtener el id_autor desde detalle_trabajo_autor
-      const [result] = await db.query(
-        'SELECT id_autor FROM detalle_trabajo_autor WHERE id_trabajo = ?',
-        [trabajo.id_trabajo]
-      );
+        const { id_trabajo, id_autor } = trabajo;
 
-      const idAutor = result.length > 0 ? result[0].id_autor : null;
-
-      if (idAutor) {
-        await db.query(
-          'INSERT INTO detalle_sesion (id_sesion, id_trabajo, id_ponente_congresista) VALUES (?, ?, ?)',
-          [idSesion, trabajo.id_trabajo, idAutor]
+        // Obtener el id_congresista correspondiente al id_autor
+        const [resultCongresista] = await db.promise().query(
+            `SELECT c.id_congresista 
+             FROM congresista c
+             INNER JOIN usuario u ON c.id_usuario = u.id_usuario
+             INNER JOIN autor a ON a.id_usuario = u.id_usuario
+             WHERE a.id_autor = ?`,
+            [id_autor]
         );
-      } else {
-        console.error(`No se encontró autor para el trabajo ${trabajo.id_trabajo}`);
-      }
 
-      res.status(200).json({ mensaje: 'Sesión creada y trabajos asignados correctamente' });
+        if (resultCongresista.length === 0) {
+            throw new Error(`No se encontró un congresista para el autor con ID ${id_autor}`);
+        }
+
+        const idCongresista = resultCongresista[0].id_congresista;
+
+        // Insertar en la tabla `detalle_sesion`
+        await db.promise().query(
+            `INSERT INTO detalle_sesion (id_sesion, id_trabajo, id_ponente_congresista) VALUES (?, ?, ?)`,
+            [idSesion, id_trabajo, idCongresista]
+        );
     }
+
+    res.status(200).json({ mensaje: 'Sesión creada y trabajos asignados correctamente' });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    console.error("Error interno del servidor:", error);
+    res.status(500).json({ error: "Error interno del servidor. Por favor, inténtelo de nuevo más tarde." });
   }
 };
 
-// Obtener lista de miembros disponibles como chairman
-exports.getChairmanDisponibles = async (req, res) => {
+// Obtener miembros disponibles para ser chairman
+exports.getMiembrosDisponibles = async (req, res) => {
   const { fecha, hora } = req.query;
 
-  try {
-    const [miembros] = await db.query(
-      `SELECT id, nombre FROM miembros_comite 
-       WHERE id NOT IN (SELECT chairman_id FROM sesiones WHERE fecha = ? AND hora = ?)`,
-      [fecha, hora]
-    );
-
-    res.status(200).json(miembros);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error obteniendo miembros disponibles' });
+  if (!fecha || !hora) {
+    return res.status(400).json({ error: "Los parámetros 'fecha' y 'hora' son requeridos." });
   }
+
+  try {
+    const fechaHora = `${fecha} ${hora}`;
+    const query = `
+      SELECT u.id_usuario, u.nombre, u.apellido
+        FROM usuario u
+        inner join congresista c on c.id_usuario = u.id_usuario
+        WHERE u.id_usuario NOT IN (
+          SELECT s.id_moderador_congresista
+          FROM sesion s
+          inner join congresista c on c.id_usuario = s.id_moderador_congresista
+          WHERE  fecha_hora = ?)
+          and c.miembro_comite = 1
+  `;
+
+    const [result] = await db.promise().query(query, [fechaHora]);
+    console.log(result);
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("Error al obtener miembros disponibles:", error);
+    res.status(500).json({ error: "Error interno del servidor." });
+  }
+};
+
+
+exports.asistirSesion = (req, res) => {
+  const { id_congresista, id_sesion } = req.body;
+
+  const checkSql = `SELECT * FROM asistencia WHERE id_congresista = ? AND id_sesion = ?`;
+
+  db.query(checkSql, [id_congresista, id_sesion], (checkErr, checkResult) => {
+    if (checkErr) {
+      return res.status(500).send(checkErr);
+    }
+
+    if (checkResult.length > 0) {
+      return res
+        .status(400)
+        .json({ message: "Ya estás registrado como asistente a esta sesión." });
+    }
+
+    const insertSql = `INSERT INTO asistencia (id_congresista, id_sesion) VALUES (?, ?)`;
+
+    db.query(insertSql, [id_congresista, id_sesion], (insertErr, result) => {
+      if (insertErr) {
+        return res.status(500).send(insertErr);
+      }
+
+      res.json({ message: "Asistencia registrada correctamente" });
+    });
+  });
+};
+
+
+
+exports.verificarAsistencia = (req, res) => {
+  const { id_congresista, id_sesion } = req.params;
+  const sql = `SELECT * FROM asistencia WHERE id_congresista = ? AND id_sesion = ?`;
+console.log(id_congresista, id_sesion)
+  db.query(sql, [id_congresista, id_sesion], (err, results) => {
+    if (err) return res.status(500).send(err);
+    res.json({ asistio: results.length > 0 });
+  });
 };
