@@ -24,7 +24,7 @@ router.get("/getAsistenciaPorUsuario/:id_usuario", getAsistenciaPorUsuario);
 router.get("/getSesionesReporte", getSesionesReporte);
 router.get("/getChairmansReporte", getChairmansReporte);
 router.get("/getDiaMasTrabajos", getDiaMasTrabajos);
-router.post("/crear-sesion", crearSesion);
+router.post("/crearSesion", crearSesion);
 router.get("/chairman-disponibles", getChairmanDisponibles); 
 
 module.exports = router;
