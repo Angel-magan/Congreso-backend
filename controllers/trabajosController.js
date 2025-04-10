@@ -144,6 +144,36 @@ exports.buscarTrabajoPorTitulo = (req, res) => {
 	});
 };
 
+// Buscar el trabajo para la HU Crear Sesión, que se muestren solo los trabajos que no han sido presentados
+exports.buscarTrabajoParaPresentar = (req, res) => {
+	const { titulo } = req.query;
+
+	if (!titulo) {
+		return res
+			.status(400)
+			.json({ message: "El título es requerido para la búsqueda" });
+	}
+
+	const query = `
+		SELECT * 
+		FROM trabajo 
+		WHERE titulo LIKE ? 
+		AND trabajoAceptado = ? 
+		AND id_trabajo NOT IN (
+			SELECT id_trabajo 
+			FROM detalle_sesion
+		)
+	`;
+
+	db.query(query, [`%${titulo}%`, '1'], (err, results) => {
+		if (err) {
+			console.error("Error al buscar trabajos:", err);
+			return res.status(500).json({ message: "Error interno del servidor" });
+		}
+		res.json(results);
+	});
+};
+
 exports.getAutoresPorTrabajo = (req, res) => {
 	const { id_trabajo } = req.params;
 

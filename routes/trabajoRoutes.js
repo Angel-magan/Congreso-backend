@@ -12,7 +12,8 @@ const {
   updateTrabajo,
   getTrabajosPorAutor,
   getTrabajosReporte,
-  getTrabajosNoAceptados
+  getTrabajosNoAceptados,
+  buscarTrabajoParaPresentar
 } = require("../controllers/trabajosController");
 
 const router = express.Router();
@@ -30,5 +31,6 @@ router.put("/actualizarTrabajo/:id/:trabajoAceptado", updateTrabajo);
 router.get("/getTrabajosPorAutor/:id_autor", getTrabajosPorAutor);
 router.get("/getTrabajosReporte", getTrabajosReporte);
 router.get("/getTrabajosNoAceptados", getTrabajosNoAceptados);
+router.get("/buscarParaCrearSesion", buscarTrabajoParaPresentar);
 
 module.exports = router;
