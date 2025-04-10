@@ -2,18 +2,20 @@ const db = require("../config/db");
 
 //Ver sesiones
 exports.getSesiones = (req, res) => {
-      const sql = `SELECT 
-      s.fecha_hora, 
-      s.sala, 
-      us.nombre AS moderador, 
-      JSON_ARRAYAGG(u.nombre) AS ponentes_trabajo,
-      JSON_ARRAYAGG(t.titulo) AS titulos_trabajos 
-    FROM sesion s
-    INNER JOIN detalle_sesion ds ON s.id_sesion = ds.id_sesion
-    INNER JOIN usuario u ON u.id_usuario = ds.id_ponente_congresista
-    INNER JOIN usuario us ON us.id_usuario = s.id_moderador_congresista
-    INNER JOIN trabajo t ON t.id_trabajo = ds.id_trabajo
-    GROUP BY s.id_sesion;`;
+  const sql = `SELECT
+  s.id_sesion, 
+  s.fecha_hora, 
+  s.sala, 
+  us.nombre AS moderador, 
+  GROUP_CONCAT(DISTINCT u.nombre ORDER BY u.nombre) AS ponentes_trabajo,
+  GROUP_CONCAT(DISTINCT t.titulo ORDER BY t.titulo) AS titulos_trabajos 
+FROM sesion s
+INNER JOIN detalle_sesion ds ON s.id_sesion = ds.id_sesion
+INNER JOIN usuario u ON u.id_usuario = ds.id_ponente_congresista
+INNER JOIN usuario us ON us.id_usuario = s.id_moderador_congresista
+INNER JOIN trabajo t ON t.id_trabajo = ds.id_trabajo
+GROUP BY s.id_sesion;
+`;
     //Ejecutar la consulta y manejar las respuestas con err, result
     db.query(sql, (err, result) => {
       if (err) {
@@ -55,13 +57,13 @@ exports.obtenerDistribucionSesiones = (req, res) => {
 // Uso de salas
 exports.obtenerUsoSalas = (req, res) => {
   const sql = `
-    SELECT 
-        DATE_FORMAT(fecha_hora, '%H:%i') AS horario,
-        COUNT(id_sesion) AS sesiones_activas
-    FROM sesion
-    GROUP BY horario
-    ORDER BY horario;
-  `;
+  SELECT 
+    DATE(fecha_hora) AS fecha,
+    COUNT(*) AS salas_en_uso
+  FROM sesion
+  GROUP BY fecha
+  ORDER BY fecha;
+`;
 
   db.query(sql, (err, results) => {
     if (err) {
@@ -349,4 +351,45 @@ exports.getMiembrosDisponibles = async (req, res) => {
     console.error("Error al obtener miembros disponibles:", error);
     res.status(500).json({ error: "Error interno del servidor." });
   }
+};
+
+
+exports.asistirSesion = (req, res) => {
+  const { id_congresista, id_sesion } = req.body;
+
+  const checkSql = `SELECT * FROM asistencia WHERE id_congresista = ? AND id_sesion = ?`;
+
+  db.query(checkSql, [id_congresista, id_sesion], (checkErr, checkResult) => {
+    if (checkErr) {
+      return res.status(500).send(checkErr);
+    }
+
+    if (checkResult.length > 0) {
+      return res
+        .status(400)
+        .json({ message: "Ya estás registrado como asistente a esta sesión." });
+    }
+
+    const insertSql = `INSERT INTO asistencia (id_congresista, id_sesion) VALUES (?, ?)`;
+
+    db.query(insertSql, [id_congresista, id_sesion], (insertErr, result) => {
+      if (insertErr) {
+        return res.status(500).send(insertErr);
+      }
+
+      res.json({ message: "Asistencia registrada correctamente" });
+    });
+  });
+};
+
+
+
+exports.verificarAsistencia = (req, res) => {
+  const { id_congresista, id_sesion } = req.params;
+  const sql = `SELECT * FROM asistencia WHERE id_congresista = ? AND id_sesion = ?`;
+console.log(id_congresista, id_sesion)
+  db.query(sql, [id_congresista, id_sesion], (err, results) => {
+    if (err) return res.status(500).send(err);
+    res.json({ asistio: results.length > 0 });
+  });
 };

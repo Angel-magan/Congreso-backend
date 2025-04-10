@@ -47,8 +47,8 @@ exports.registrarCongresista = (req, res) => {
 
       // Insertar nuevo congresista
       const addCongresistaSql = `
-                INSERT INTO congresista (id_usuario, institucion, telefono, notificacion, miembro_comite)
-                VALUES (?, ?, ?, ?, '0')
+                INSERT INTO congresista (id_usuario, institucion, telefono, notificacion, miembro_comite, fecha_registro)
+                VALUES (?, ?, ?, ?, '0', CURDATE())
             `;
 
       db.query(
@@ -253,12 +253,12 @@ exports.obtenerNotificaciones = (req, res) => {
   const sql = `
     SELECT 
       CASE 
-        WHEN notificacion = 'S' THEN 'Sí Notificaciones'
-        WHEN notificacion = 'N' THEN 'No Notificaciones'
+        WHEN notificacion = '1' THEN 'Sí Notificaciones'
+        WHEN notificacion = '0' THEN 'No Notificaciones'
       END AS estado,
       COUNT(*) AS cantidad
     FROM congresista
-    WHERE notificacion IN ('S', 'N')
+    WHERE notificacion IN ('1', '0')
     GROUP BY notificacion;
   `;
 
@@ -277,12 +277,11 @@ exports.obtenerNotificaciones = (req, res) => {
 //Grafica cantidad de trabajos por congresista
 exports.obtenerCongresistasConTrabajos = (req, res) => {
   const sql = `
-    SELECT c.id_congresista, u.nombre, COUNT(t.id_trabajo) AS cantidad_trabajos
-      FROM congresista c
-      JOIN usuario u ON c.id_usuario = u.id_usuario
-      JOIN trabajo t ON c.id_congresista = t.id_congresista
-      GROUP BY c.id_congresista
-      ORDER BY cantidad_trabajos DESC;
+    SELECT 
+    'Congresistas' AS nombre,
+    COUNT(DISTINCT t.id_congresista) AS cantidad_congresistas
+      FROM trabajo t
+      WHERE t.id_congresista IS NOT NULL;
   `;
 
   db.query(sql, (err, results) => {
