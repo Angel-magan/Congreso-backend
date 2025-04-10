@@ -126,22 +126,22 @@ exports.validarCongresista = (req, res) => {
 
 // Buscar el trabajo para la HU Crear Sesión
 exports.buscarTrabajoPorTitulo = (req, res) => {
-  const { titulo } = req.query;
+	const { titulo } = req.query;
 
-  if (!titulo) {
-    return res
-      .status(400)
-      .json({ message: "El título es requerido para la búsqueda" });
-  }
+	if (!titulo) {
+		return res
+			.status(400)
+			.json({ message: "El título es requerido para la búsqueda" });
+	}
 
-  const query = "SELECT * FROM trabajo WHERE titulo LIKE ?";
-  db.query(query, [`%${titulo}%`], (err, results) => {
-    if (err) {
-      console.error("Error al buscar trabajos:", err);
-      return res.status(500).json({ message: "Error interno del servidor" });
-    }
-    res.json(results);
-  });
+	const query = "SELECT * FROM trabajo WHERE titulo LIKE ? AND trabajoAceptado = ?";
+	db.query(query, [`%${titulo}%`, '1'], (err, results) => {
+		if (err) {
+			console.error("Error al buscar trabajos:", err);
+			return res.status(500).json({ message: "Error interno del servidor" });
+		}
+		res.json(results);
+	});
 };
 
 exports.getAutoresPorTrabajo = (req, res) => {
