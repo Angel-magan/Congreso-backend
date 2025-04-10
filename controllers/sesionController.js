@@ -244,11 +244,20 @@ exports.crearSesion = async (req, res) => {
   }
   if (!sala || !chairmanId || !fecha || !hora) {
     console.log("Error: Campos faltantes.");
-    return res.status(400).json({ error: "Todos los campos (sala, chairmanId, fecha, hora) son requeridos." });
+    return res.status(400).json({ error: "Todos los campos (sala, ponente, chairman, fecha, hora) son requeridos." });
   }
-  // const { trabajos, salaId, chairmanId, fecha, hora } = req.body;
 
   try {
+    // Verificar si el chairman existe en la tabla congresista
+    const [chairmanExists] = await db.promise().query(
+      'SELECT id_congresista FROM congresista WHERE id_congresista = ?',
+      [chairmanId]
+    );
+    if (chairmanExists.length === 0) {
+      console.log(`Error: El chairman con ID ${chairmanId} no existe.`);
+      return res.status(400).json({ error: `El chairman con ID ${chairmanId} no existe.` });
+    }
+
     // Verificar si algún trabajo ya está asignado a otra sesión
     for (const trabajo of trabajos) {
       const [existeTrabajo] = await db.promise().query(
@@ -256,7 +265,8 @@ exports.crearSesion = async (req, res) => {
         [trabajo.id_trabajo]
       );
       if (existeTrabajo.length > 0) {
-        return res.status(400).json({ error: `El trabajo ${trabajo.id_trabajo} ya está asignado a otra sesión` });
+        console.log(`Error: El trabajo ${trabajo.id_trabajo} ya está asignado a otra sesión.`);
+        return res.status(400).json({ error: `El trabajo ${trabajo.id_trabajo} ya está asignado a otra sesión.` });
       }
     }
 
@@ -266,7 +276,8 @@ exports.crearSesion = async (req, res) => {
       [sala, fecha, hora]
     );
     if (salaOcupada.length > 0) {
-      return res.status(400).json({ error: 'La sala ya está ocupada en este horario' });
+      console.log("Error: La sala ya está ocupada en este horario.");
+      return res.status(400).json({ error: "La sala ya está ocupada en este horario." });
     }
 
     // Verificar si el chairman ya está moderando otra sesión al mismo tiempo
@@ -275,7 +286,8 @@ exports.crearSesion = async (req, res) => {
       [chairmanId, fecha, hora]
     );
     if (chairmanOcupado.length > 0) {
-      return res.status(400).json({ error: 'El chairman ya modera otra sesión en este horario' });
+      console.log("Error: El chairman ya modera otra sesión en este horario.");
+      return res.status(400).json({ error: "El chairman ya modera otra sesión en este horario." });
     }
 
     // Insertar la nueva sesión
@@ -306,25 +318,35 @@ exports.crearSesion = async (req, res) => {
 
     res.status(200).json({ mensaje: 'Sesión creada y trabajos asignados correctamente' });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    console.error("Error interno del servidor:", error);
+    res.status(500).json({ error: "Error interno del servidor. Por favor, inténtelo de nuevo más tarde." });
   }
 };
 
-// Obtener lista de miembros disponibles como chairman
-exports.getChairmanDisponibles = async (req, res) => {
+// Obtener miembros disponibles para ser chairman
+exports.getMiembrosDisponibles = async (req, res) => {
   const { fecha, hora } = req.query;
 
-  try {
-    const [miembros] = await db.query(
-      `SELECT id, nombre FROM miembros_comite 
-       WHERE id NOT IN (SELECT chairman_id FROM sesiones WHERE fecha = ? AND hora = ?)`,
-      [fecha, hora]
-    );
+  if (!fecha || !hora) {
+    return res.status(400).json({ error: "Los parámetros 'fecha' y 'hora' son requeridos." });
+  }
 
-    res.status(200).json(miembros);
+  try {
+    const fechaHora = `${fecha} ${hora}`;
+    const query = `
+      SELECT u.id_usuario, u.nombre, u.apellido
+      FROM usuario u
+      WHERE u.id_usuario NOT IN (
+        SELECT s.id_moderador_congresista
+        FROM sesion s
+        WHERE s.fecha_hora = ?
+      )
+    `;
+
+    const [result] = await db.promise().query(query, [fechaHora]);
+    res.status(200).json(result);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error obteniendo miembros disponibles' });
+    console.error("Error al obtener miembros disponibles:", error);
+    res.status(500).json({ error: "Error interno del servidor." });
   }
 };
