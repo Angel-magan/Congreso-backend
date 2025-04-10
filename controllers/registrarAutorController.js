@@ -61,7 +61,7 @@ exports.registrarAutor = (req, res) => {
 
     // Si no existe, registrar al autor
     const insertSql =
-      "INSERT INTO autor (id_usuario, id_congresista) VALUES (?, ?)";
+      "INSERT INTO autor (id_usuario, id_congresista, fecha_registro) VALUES (?, ?, CURDATE())";
     db.query(insertSql, [id_usuario, id_congresista || null], (err, result) => {
       if (err) {
         return res

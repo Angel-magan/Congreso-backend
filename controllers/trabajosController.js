@@ -396,5 +396,40 @@ exports.getTrabajosPorAutor = (req, res) => {
     });
 };
 
+exports.asistirSesion = (req, res) => {
+  const { id_congresista, id_sesion } = req.body;
 
+  const checkSql = `SELECT * FROM asistencia WHERE id_congresista = ? AND id_sesion = ?`;
 
+  db.query(checkSql, [id_congresista, id_sesion], (checkErr, checkResult) => {
+    if (checkErr) {
+      return res.status(500).send(checkErr);
+    }
+
+    if (checkResult.length > 0) {
+      return res
+        .status(400)
+        .json({ message: "Ya estás registrado como asistente a esta sesión." });
+    }
+
+    const insertSql = `INSERT INTO asistencia (id_congresista, id_sesion) VALUES (?, ?)`;
+
+    db.query(insertSql, [id_congresista, id_sesion], (insertErr, result) => {
+      if (insertErr) {
+        return res.status(500).send(insertErr);
+      }
+
+      res.json({ message: "Asistencia registrada correctamente" });
+    });
+  });
+};
+
+exports.verificarAsistencia = (req, res) => {
+  const { id_congresista, id_sesion } = req.params;
+  const sql = `SELECT * FROM asistencia WHERE id_congresista = ? AND id_sesion = ?`;
+console.log(id_congresista, id_sesion)
+  db.query(sql, [id_congresista, id_sesion], (err, results) => {
+    if (err) return res.status(500).send(err);
+    res.json({ asistio: results.length > 0 });
+  });
+};
