@@ -2,19 +2,22 @@ const db = require("../config/db");
 
 //Ver sesiones
 exports.getSesiones = (req, res) => {
-  const sql = `SELECT
-  s.id_sesion, 
-  s.fecha_hora, 
-  s.sala, 
-  us.nombre AS moderador, 
-  GROUP_CONCAT(DISTINCT u.nombre ORDER BY u.nombre) AS ponentes_trabajo,
-  GROUP_CONCAT(DISTINCT t.titulo ORDER BY t.titulo) AS titulos_trabajos 
-FROM sesion s
-INNER JOIN detalle_sesion ds ON s.id_sesion = ds.id_sesion
-INNER JOIN usuario u ON u.id_usuario = ds.id_ponente_congresista
-INNER JOIN usuario us ON us.id_usuario = s.id_moderador_congresista
-INNER JOIN trabajo t ON t.id_trabajo = ds.id_trabajo
-GROUP BY s.id_sesion;
+  const sql = `            
+SELECT
+    s.id_sesion, 
+    s.fecha_hora, 
+    s.sala, 
+    us.nombre AS moderador, 
+    GROUP_CONCAT(DISTINCT u.nombre ORDER BY u.nombre) AS ponentes_trabajo,
+    GROUP_CONCAT(DISTINCT t.titulo ORDER BY t.titulo) AS titulos_trabajos 
+  FROM sesion s
+  INNER JOIN detalle_sesion ds ON s.id_sesion = ds.id_sesion
+  INNER JOIN congresista c ON c.id_congresista = ds.id_ponente_congresista
+  INNER JOIN usuario u ON u.id_usuario = c.id_usuario
+  INNER JOIN usuario us ON us.id_usuario = s.id_moderador_congresista
+  INNER JOIN trabajo t ON t.id_trabajo = ds.id_trabajo
+  GROUP BY s.id_sesion;
+
 `;
     //Ejecutar la consulta y manejar las respuestas con err, result
     db.query(sql, (err, result) => {
@@ -237,27 +240,26 @@ exports.getDiaMasTrabajos = (req, res) => {
 exports.crearSesion = async (req, res) => {
   console.log("Datos recibidos:", req.body);
 
-  const { trabajos, sala, fecha, hora } = req.body;
-  const chairmanId = trabajos[0]?.autor_id; // Extraer chairmanId del primer trabajo
+  const { trabajos, sala, fecha, hora, chairman_id } = req.body;
 
   if (!trabajos || !Array.isArray(trabajos) || trabajos.length === 0) {
     console.log("Error: Lista de trabajos inválida.");
     return res.status(400).json({ error: "La lista de trabajos es requerida y debe contener al menos un trabajo." });
   }
-  if (!sala || !chairmanId || !fecha || !hora) {
+  if (!sala || !chairman_id || !fecha || !hora) {
     console.log("Error: Campos faltantes.");
-    return res.status(400).json({ error: "Todos los campos (sala, ponente, chairman, fecha, hora) son requeridos." });
+    return res.status(400).json({ error: "Todos los campos (sala, chairman, fecha, hora) son requeridos." });
   }
 
   try {
-    // Verificar si el chairman existe en la tabla congresista
+    // Verificar si el chairman existe en la tabla usuario
     const [chairmanExists] = await db.promise().query(
-      'SELECT id_congresista FROM congresista WHERE id_congresista = ?',
-      [chairmanId]
+      'SELECT id_usuario FROM usuario WHERE id_usuario = ?',
+      [chairman_id]
     );
     if (chairmanExists.length === 0) {
-      console.log(`Error: El chairman con ID ${chairmanId} no existe.`);
-      return res.status(400).json({ error: `El chairman con ID ${chairmanId} no existe.` });
+      console.log(`Error: El chairman con ID ${chairman_id} no existe.`);
+      return res.status(400).json({ error: `El chairman con ID ${chairman_id} no existe.` });
     }
 
     // Verificar si algún trabajo ya está asignado a otra sesión
@@ -285,7 +287,7 @@ exports.crearSesion = async (req, res) => {
     // Verificar si el chairman ya está moderando otra sesión al mismo tiempo
     const [chairmanOcupado] = await db.promise().query(
       'SELECT id_sesion FROM sesion WHERE id_moderador_congresista = ? AND DATE(fecha_hora) = ? AND TIME(fecha_hora) = ?',
-      [chairmanId, fecha, hora]
+      [chairman_id, fecha, hora]
     );
     if (chairmanOcupado.length > 0) {
       console.log("Error: El chairman ya modera otra sesión en este horario.");
@@ -296,26 +298,35 @@ exports.crearSesion = async (req, res) => {
     const fecha_hora = `${fecha} ${hora}`;
     const [sesionResult] = await db.promise().query(
       'INSERT INTO sesion (fecha_hora, sala, id_moderador_congresista) VALUES (?, ?, ?)',
-      [fecha_hora, sala, chairmanId]
+      [fecha_hora, sala, chairman_id]
     );
     const idSesion = sesionResult.insertId;
 
-    // Insertar los trabajos en detalle_sesion
+    // Procesar los trabajos y traducir id_autor a id_congresista
     for (const trabajo of trabajos) {
-      const [result] = await db.promise().query(
-        'SELECT id_autor FROM detalle_trabajo_autor WHERE id_trabajo = ?',
-        [trabajo.id_trabajo]
-      );
-      const idAutor = result.length > 0 ? result[0].id_autor : null;
+        const { id_trabajo, id_autor } = trabajo;
 
-      if (idAutor) {
-        await db.promise().query(
-          'INSERT INTO detalle_sesion (id_sesion, id_trabajo, id_ponente_congresista) VALUES (?, ?, ?)',
-          [idSesion, trabajo.id_trabajo, idAutor]
+        // Obtener el id_congresista correspondiente al id_autor
+        const [resultCongresista] = await db.promise().query(
+            `SELECT c.id_congresista 
+             FROM congresista c
+             INNER JOIN usuario u ON c.id_usuario = u.id_usuario
+             INNER JOIN autor a ON a.id_usuario = u.id_usuario
+             WHERE a.id_autor = ?`,
+            [id_autor]
         );
-      } else {
-        console.error(`No se encontró autor para el trabajo ${trabajo.id_trabajo}`);
-      }
+
+        if (resultCongresista.length === 0) {
+            throw new Error(`No se encontró un congresista para el autor con ID ${id_autor}`);
+        }
+
+        const idCongresista = resultCongresista[0].id_congresista;
+
+        // Insertar en la tabla `detalle_sesion`
+        await db.promise().query(
+            `INSERT INTO detalle_sesion (id_sesion, id_trabajo, id_ponente_congresista) VALUES (?, ?, ?)`,
+            [idSesion, id_trabajo, idCongresista]
+        );
     }
 
     res.status(200).json({ mensaje: 'Sesión creada y trabajos asignados correctamente' });
@@ -337,15 +348,18 @@ exports.getMiembrosDisponibles = async (req, res) => {
     const fechaHora = `${fecha} ${hora}`;
     const query = `
       SELECT u.id_usuario, u.nombre, u.apellido
-      FROM usuario u
-      WHERE u.id_usuario NOT IN (
-        SELECT s.id_moderador_congresista
-        FROM sesion s
-        WHERE s.fecha_hora = ?
-      )
-    `;
+        FROM usuario u
+        inner join congresista c on c.id_usuario = u.id_usuario
+        WHERE u.id_usuario NOT IN (
+          SELECT s.id_moderador_congresista
+          FROM sesion s
+          inner join congresista c on c.id_usuario = s.id_moderador_congresista
+          WHERE  fecha_hora = ?)
+          and c.miembro_comite = 1
+  `;
 
     const [result] = await db.promise().query(query, [fechaHora]);
+    console.log(result);
     res.status(200).json(result);
   } catch (error) {
     console.error("Error al obtener miembros disponibles:", error);
