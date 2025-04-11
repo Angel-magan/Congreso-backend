@@ -17,7 +17,7 @@ async function sendSms(phoneNumber, fullName) {
         const response = await axios.post("https://textbelt.com/text", {
             phone: phoneNumber,
             message: message,
-            key: "", // Clave 
+            key: "c3bbb69eb63622c9b74c10797a08a8b6cfd97d2fn8jJHhq5RXl63TNROSQu33rwM", // Clave 
         });
 
         console.log(phoneNumber, message);
